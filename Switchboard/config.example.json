@@ -1,0 +1,10 @@
+{
+  "upstream": {
+    "endpoints": {
+      "detection": "https://iac.face.api.example.com/detect/",
+      "detectionv2": "https://iac.face.api.example.com/detect_v2/",
+      "recognition": "https://iac.face.api.example.com/recognize/",
+      "search": "https://iac.face.api.example.com/search/"
+    }
+  }
+}

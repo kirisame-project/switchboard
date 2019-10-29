@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "Switchboard": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:51997/"
+    }
+  }
+}
