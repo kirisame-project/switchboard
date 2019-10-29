@@ -14,8 +14,8 @@ namespace Switchboard.Services.Lambda
     {
         private static MemoryStream GetFaceImage(this LambdaFace face, Image originalImage)
         {
-            var height = face.Position.X2 - face.Position.X1;
-            var width = face.Position.Y2 - face.Position.Y1;
+            var height = face.Position.Y2 - face.Position.Y1;
+            var width = face.Position.X2 - face.Position.X1;
 
             using var output = new Bitmap(width, height);
             output.SetResolution(originalImage.HorizontalResolution, originalImage.VerticalResolution);
@@ -26,7 +26,7 @@ namespace Switchboard.Services.Lambda
             canvas.SmoothingMode = SmoothingMode.HighQuality;
             canvas.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-            var destRect = new Rectangle(face.Position.X1, face.Position.X2, width, height);
+            var destRect = new Rectangle(0, 0, width, height);
             canvas.DrawImage(originalImage, destRect, face.Position.X1, face.Position.Y1, width, height,
                 GraphicsUnit.Pixel);
 
