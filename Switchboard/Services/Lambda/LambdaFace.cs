@@ -1,9 +1,10 @@
 ﻿using System;
+using System.IO;
 using System.Text.Json.Serialization;
 
 namespace Switchboard.Services.Lambda
 {
-    public class LambdaFace
+    public class LambdaFace : IDisposable
     {
         public LambdaFace(FacePosition position)
         {
@@ -19,6 +20,13 @@ namespace Switchboard.Services.Lambda
 
         [JsonPropertyName("position")] public FacePosition Position { get; }
 
+        [JsonIgnore] public MemoryStream FaceImage { get; set; }
+
         [JsonPropertyName("vector")] public double[] FeatureVector { get; set; }
+
+        public void Dispose()
+        {
+            FaceImage?.Dispose();
+        }
     }
 }

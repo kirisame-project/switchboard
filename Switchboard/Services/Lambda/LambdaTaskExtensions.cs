@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -36,6 +37,11 @@ namespace Switchboard.Services.Lambda
             return outputStream;
         }
 
+        private static async Task UpdateFaceImage(this LambdaFace face, Image originalImage)
+        {
+            await Task.Run(() => face.FaceImage = face.GetFaceImage(originalImage));
+        }
+
         public static async Task UpdateFacePositions(this LambdaTask task, IUpstreamService upstream,
             CancellationToken cancellationToken)
         {
@@ -45,21 +51,29 @@ namespace Switchboard.Services.Lambda
             task.DetectionTime = (int) (DateTime.Now - time).TotalMilliseconds;
         }
 
-        private static async Task UpdateFaceFeatureVector(this LambdaFace face, Image originalImage,
+        private static async Task UpdateFaceFeatureVector(this LambdaFace face,
             IUpstreamService upstream, CancellationToken cancellationToken)
         {
             var time = DateTime.Now;
-            var image = await Task.Run(() => face.GetFaceImage(originalImage), cancellationToken);
-            face.FeatureVector = await upstream.GetFaceFeatureVector(image, cancellationToken);
+            Debug.Assert(face.FaceImage != null);
+            face.FeatureVector = await upstream.GetFaceFeatureVector(face.FaceImage, cancellationToken);
             face.RecognitionTime = (int) (DateTime.Now - time).TotalMilliseconds;
         }
 
         public static async Task UpdateFaceFeatureVectors(this LambdaTask task, IUpstreamService upstream,
             CancellationToken cancellationToken)
         {
+            var time = DateTime.Now;
+
+            // crop faces in sequence
             task.OriginalImage.Seek(0, SeekOrigin.Begin);
-            using var image = Image.FromStream(task.OriginalImage);
-            foreach (var face in task.Faces) await face.UpdateFaceFeatureVector(image, upstream, cancellationToken);
+            var image = Image.FromStream(task.OriginalImage);
+            foreach (var face in task.Faces) await face.UpdateFaceImage(image);
+
+            // request vector in parallel
+            await Task.WhenAll(task.Faces.Select(face => face.UpdateFaceFeatureVector(upstream, cancellationToken)));
+
+            task.TotalVectorTime = (int) (DateTime.Now - time).TotalMilliseconds;
         }
 
         public static async Task UpdateFaceSearchResults(this LambdaTask task, IUpstreamService upstream,
