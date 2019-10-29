@@ -40,7 +40,7 @@ namespace Switchboard.Services.Lambda
             CancellationToken cancellationToken)
         {
             var time = DateTime.Now;
-            var results = new[] {await upstream.FindFace(task.OriginalImage, cancellationToken)};
+            var results = await upstream.FindFacesV2(task.OriginalImage, cancellationToken);
             task.Faces = results.Select(position => new LambdaFace(position)).ToArray();
             task.DetectionTime = (int) (DateTime.Now - time).TotalMilliseconds;
         }

@@ -44,13 +44,13 @@ namespace Switchboard.Services.Upstream
             var response = await _http.PostStreamAsync<FaceDetectionV2Response>(image, "image/jpeg",
                 _config.Endpoints.DetectionV2, cancellationToken);
 
-            return (FacePosition[]) response.Boxes.Select(box => new FacePosition
+            return response.Boxes.Select(box => new FacePosition
             {
                 X1 = box[0],
                 Y1 = box[1],
                 X2 = box[2],
                 Y2 = box[3]
-            });
+            }).ToArray();
         }
 
         public async Task<double[]> GetFaceFeatureVector(MemoryStream image, CancellationToken cancellationToken)
