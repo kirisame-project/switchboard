@@ -2,7 +2,7 @@
 
 namespace Switchboard.Services.Upstream
 {
-    [Component]
+    [Component(ComponentLifestyle.Singleton)]
     public class UpstreamServiceConfiguration
     {
         public UpstreamServiceEndpointConfiguration Endpoints { get; set; }

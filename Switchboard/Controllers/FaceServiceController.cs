@@ -13,12 +13,10 @@ namespace Switchboard.Controllers
     [Route("api/v1/faces")]
     public class FaceServiceController : ControllerBase
     {
-        private readonly HttpUpstreamService _upstreamService;
+        private readonly IUpstreamService _upstreamService;
 
-        public FaceServiceController(HttpUpstreamService upstreamService)
+        public FaceServiceController(IUpstreamService upstreamService)
         {
-            // TODO: use IUpstreamService instead HttpUpstreamService impl
-            // TODO: implement ComponentImplAttribute
             _upstreamService = upstreamService;
         }
 

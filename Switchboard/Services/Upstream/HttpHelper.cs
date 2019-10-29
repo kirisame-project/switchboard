@@ -8,7 +8,8 @@ using Switchboard.Common;
 
 namespace Switchboard.Services.Upstream
 {
-    [Component]
+    [Component(ComponentLifestyle.Singleton)]
+    [DependsSingleton(typeof(HttpClient))]
     public class HttpHelper
     {
         private readonly HttpClient _client;

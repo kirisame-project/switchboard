@@ -9,8 +9,7 @@ using Switchboard.Services.Upstream.RemoteContracts;
 
 namespace Switchboard.Services.Upstream
 {
-    [Component]
-    [Depends(typeof(HttpClient))]
+    [Component(ComponentLifestyle.Singleton, Implements = typeof(IUpstreamService))]
     public class HttpUpstreamService : IUpstreamService
     {
         private readonly UpstreamServiceConfiguration _config;
