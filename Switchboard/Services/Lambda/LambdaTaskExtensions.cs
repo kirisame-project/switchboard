@@ -101,9 +101,11 @@ namespace Switchboard.Services.Lambda
             var time = DateTime.Now;
             try
             {
+                task.SearchSubTask.State = SubTaskState.Running;
                 var request = task.Faces.ToDictionary(f => f.FaceId.ToString(), f => f.FeatureVector);
                 var result = await upstream.SearchFacesByFeatureVectors(request, cancellationToken);
                 foreach (var face in task.Faces) face.SearchResult = result[face.FaceId.ToString()];
+                task.SearchSubTask.State = SubTaskState.Completed;
             }
             catch
             {
