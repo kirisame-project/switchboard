@@ -10,20 +10,21 @@ using Switchboard.Services.Upstream.RemoteContracts;
 namespace Switchboard.Services.Upstream
 {
     [Component(ComponentLifestyle.Singleton, Implements = typeof(IUpstreamService))]
+    [DependsSingleton(typeof(HttpClient))]
     public class HttpUpstreamService : IUpstreamService
     {
+        private readonly HttpClient _client;
         private readonly UpstreamServiceConfiguration _config;
-        private readonly HttpHelper _http;
 
-        public HttpUpstreamService(UpstreamServiceConfiguration config, HttpHelper http)
+        public HttpUpstreamService(UpstreamServiceConfiguration config, HttpClient client)
         {
             _config = config;
-            _http = http;
+            _client = client;
         }
 
-        public async Task<FacePosition> FindFace(MemoryStream image, CancellationToken cancellationToken)
+        public async Task<FacePosition> FindFace(Stream image, CancellationToken cancellationToken)
         {
-            var response = await _http.PostStreamAsync<FaceDetectionResponse>(image, "image/jpeg",
+            var response = await _client.PostStreamAsync<FaceDetectionResponse>(image, "image/jpeg",
                 _config.Endpoints.Detection, cancellationToken);
 
             if (response.Code != "200")
@@ -39,9 +40,9 @@ namespace Switchboard.Services.Upstream
             };
         }
 
-        public async Task<FacePosition[]> FindFacesV2(MemoryStream image, CancellationToken cancellationToken)
+        public async Task<FacePosition[]> FindFacesV2(Stream image, CancellationToken cancellationToken)
         {
-            var response = await _http.PostStreamAsync<FaceDetectionV2Response>(image, "image/jpeg",
+            var response = await _client.PostStreamAsync<FaceDetectionV2Response>(image, "image/jpeg",
                 _config.Endpoints.DetectionV2, cancellationToken);
 
             return response.Boxes.Select(box => new FacePosition
@@ -53,32 +54,32 @@ namespace Switchboard.Services.Upstream
             }).ToArray();
         }
 
-        public async Task<double[]> GetFaceFeatureVector(MemoryStream image, CancellationToken cancellationToken)
+        public async Task<double[]> GetFaceFeatureVector(Stream image, CancellationToken cancellationToken)
         {
-            return (await _http.PostStreamAsync<double[][]>(image, "image/jpeg", _config.Endpoints.Recognition,
+            return (await _client.PostStreamAsync<double[][]>(image, "image/jpeg", _config.Endpoints.Recognition,
                 cancellationToken))[0];
         }
 
-        public async Task<IDictionary<string, FaceSearchResult>> SearchFacesByFeatureVectors(
+        public async Task<IDictionary<string, FaceSearchResult[]>> SearchFacesByFeatureVectors(
             IDictionary<string, double[]> vectors, CancellationToken token)
         {
-            var response = await _http.PostObjectAsync<FaceSearchResponse, FaceSearchRequest>(new FaceSearchRequest
+            var response = await _client.PostObjectAsync<FaceSearchResponse, FaceSearchRequest>(new FaceSearchRequest
             {
                 Count = vectors.Count,
-                CandidateCount = 3,
+                CandidateCount = 3, // TODO: configurable candidate count
                 Vectors = vectors.ToDictionary(pair => pair.Key, pair => pair.Value)
             }, _config.Endpoints.Search, token);
 
             if (response.Code != 200)
                 throw new HttpRequestException("Response.Code != 200");
 
-            return response.ResultSet.ToDictionary(p => p.Key, p => new FaceSearchResult
+            return response.ResultSet.ToDictionary(p => p.Key, p =>
             {
-                TopResults = p.Value.TopLabels.Select((label, i) => new FaceSearchResultRow
+                var (_, result) = p;
+                return result.TopDistances.Select((distance, index) => new FaceSearchResult
                 {
-                    Distance = p.Value.TopDistances[i],
-                    Label = label
-                }).ToArray()
+                    Distance = distance, Label = result.TopLabels[index]
+                }).ToArray();
             });
         }
     }

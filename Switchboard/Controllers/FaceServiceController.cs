@@ -36,9 +36,9 @@ namespace Switchboard.Controllers
             var task = new LambdaTask(image);
 
             var token = CancellationToken.None; // TODO: use upstream timeout
-            await task.UpdateFacePositions(_upstreamService, token);
-            await task.UpdateFaceFeatureVectors(_upstreamService, token);
-            await task.UpdateFaceSearchResults(_upstreamService, token);
+            await task.RunDetection(_upstreamService, token);
+            await task.RunVectoring(_upstreamService, token);
+            await task.RunSearch(_upstreamService, token);
 
             return new OkObjectResult(task);
         }

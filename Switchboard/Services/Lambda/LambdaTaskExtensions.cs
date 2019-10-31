@@ -1,89 +1,109 @@
 ﻿using System;
-using System.Diagnostics;
-using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.Primitives;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard.Services.Lambda
 {
     public static class LambdaTaskExtensions
     {
-        private static MemoryStream GetFaceImage(this LambdaFace face, Image originalImage)
+        private static Stream CropFaceImage(this LambdaFace face, Image originalImage)
         {
             var height = face.Position.Y2 - face.Position.Y1;
             var width = face.Position.X2 - face.Position.X1;
 
-            using var output = new Bitmap(width, height);
-            output.SetResolution(originalImage.HorizontalResolution, originalImage.VerticalResolution);
-
-            using var canvas = Graphics.FromImage(output);
-            canvas.CompositingQuality = CompositingQuality.HighQuality;
-            canvas.InterpolationMode = InterpolationMode.HighQualityBilinear;
-            canvas.SmoothingMode = SmoothingMode.HighQuality;
-            canvas.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
-            var destRect = new Rectangle(0, 0, width, height);
-            canvas.DrawImage(originalImage, destRect, face.Position.X1, face.Position.Y1, width, height,
-                GraphicsUnit.Pixel);
-
-            var outputStream = new MemoryStream();
-            output.Save(outputStream, ImageFormat.Jpeg);
-
-            return outputStream;
+            var stream = new MemoryStream();
+            originalImage
+                .Clone(ctx => ctx.Crop(new Rectangle(face.Position.X1, face.Position.Y1, width, height)))
+                .SaveAsJpeg(stream);
+            return stream;
         }
 
-        private static async Task UpdateFaceImage(this LambdaFace face, Image originalImage)
+        private static async Task UpdateFaceImages(this LambdaTask task, Image originalImage)
         {
-            await Task.Run(() => face.FaceImage = face.GetFaceImage(originalImage));
+            foreach (var face in task.Faces)
+                task.VectorSubTask.FaceImages[face.FaceId] = await Task.Run(() => CropFaceImage(face, originalImage));
         }
 
-        public static async Task UpdateFacePositions(this LambdaTask task, IUpstreamService upstream,
+        public static async Task RunDetection(this LambdaTask task, IUpstreamService upstream,
             CancellationToken cancellationToken)
         {
             var time = DateTime.Now;
-            var results = await upstream.FindFacesV2(task.OriginalImage, cancellationToken);
-            task.Faces = results.Select(position => new LambdaFace(position)).ToArray();
-            task.DetectionTime = (int) (DateTime.Now - time).TotalMilliseconds;
+            try
+            {
+                task.DetectionSubTask.State = SubTaskState.Running;
+                var results = await upstream.FindFacesV2(task.OriginalImage, cancellationToken);
+                task.Faces = results.Select(position => new LambdaFace(position)).ToArray();
+                task.DetectionSubTask.State = SubTaskState.Completed;
+            }
+            catch
+            {
+                task.DetectionSubTask.State = SubTaskState.Failed;
+                throw;
+            }
+            finally
+            {
+                task.DetectionSubTask.Time = (int) (DateTime.Now - time).TotalMilliseconds;
+            }
         }
 
-        private static async Task UpdateFaceFeatureVector(this LambdaFace face,
-            IUpstreamService upstream, CancellationToken cancellationToken)
-        {
-            var time = DateTime.Now;
-            Debug.Assert(face.FaceImage != null);
-            face.FeatureVector = await upstream.GetFaceFeatureVector(face.FaceImage, cancellationToken);
-            face.RecognitionTime = (int) (DateTime.Now - time).TotalMilliseconds;
-        }
-
-        public static async Task UpdateFaceFeatureVectors(this LambdaTask task, IUpstreamService upstream,
+        public static async Task RunVectoring(this LambdaTask task, IUpstreamService upstream,
             CancellationToken cancellationToken)
         {
             var time = DateTime.Now;
+            try
+            {
+                task.VectorSubTask.State = SubTaskState.Running;
 
-            // crop faces in sequence
-            task.OriginalImage.Seek(0, SeekOrigin.Begin);
-            var image = Image.FromStream(task.OriginalImage);
-            foreach (var face in task.Faces) await face.UpdateFaceImage(image);
+                // crop faces in sequence
+                task.OriginalImage.Seek(0, SeekOrigin.Begin);
+                var image = Image.Load(task.OriginalImage);
+                await UpdateFaceImages(task, image);
 
-            // request vector in parallel
-            await Task.WhenAll(task.Faces.Select(face => face.UpdateFaceFeatureVector(upstream, cancellationToken)));
+                // request vector in parallel
+                await Task.WhenAll(task.Faces.Select(async face =>
+                {
+                    var faceImage = task.VectorSubTask.FaceImages[face.FaceId];
+                    face.FeatureVector = await upstream.GetFaceFeatureVector(faceImage, cancellationToken);
+                }));
 
-            task.TotalVectorTime = (int) (DateTime.Now - time).TotalMilliseconds;
+                task.VectorSubTask.State = SubTaskState.Completed;
+            }
+            catch
+            {
+                task.VectorSubTask.State = SubTaskState.Failed;
+                throw;
+            }
+            finally
+            {
+                task.VectorSubTask.Time = (int) (DateTime.Now - time).TotalMilliseconds;
+            }
         }
 
-        public static async Task UpdateFaceSearchResults(this LambdaTask task, IUpstreamService upstream,
+        public static async Task RunSearch(this LambdaTask task, IUpstreamService upstream,
             CancellationToken cancellationToken)
         {
             var time = DateTime.Now;
-            var request = task.Faces.ToDictionary(f => f.Id.ToString(), f => f.FeatureVector);
-            var result = await upstream.SearchFacesByFeatureVectors(request, cancellationToken);
-            foreach (var face in task.Faces) face.SearchResult = result[face.Id.ToString()];
-            task.SearchTime = (int) (DateTime.Now - time).TotalMilliseconds;
+            try
+            {
+                var request = task.Faces.ToDictionary(f => f.FaceId.ToString(), f => f.FeatureVector);
+                var result = await upstream.SearchFacesByFeatureVectors(request, cancellationToken);
+                foreach (var face in task.Faces) face.SearchResult = result[face.FaceId.ToString()];
+            }
+            catch
+            {
+                task.SearchSubTask.State = SubTaskState.Failed;
+                throw;
+            }
+            finally
+            {
+                task.SearchSubTask.Time = (int) (DateTime.Now - time).TotalMilliseconds;
+            }
         }
     }
 }

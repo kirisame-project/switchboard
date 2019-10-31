@@ -1,32 +1,22 @@
 ﻿using System;
-using System.IO;
 using System.Text.Json.Serialization;
 
 namespace Switchboard.Services.Lambda
 {
-    public class LambdaFace : IDisposable
+    public class LambdaFace
     {
         public LambdaFace(FacePosition position)
         {
-            Id = Guid.NewGuid();
+            FaceId = Guid.NewGuid();
             Position = position;
         }
 
-        [JsonPropertyName("id")] public Guid Id { get; }
+        [JsonPropertyName("id")] public Guid FaceId { get; set; }
 
-        [JsonPropertyName("_vector_time")] public int RecognitionTime { get; set; }
-
-        [JsonPropertyName("search_result")] public FaceSearchResult SearchResult { get; set; }
-
-        [JsonPropertyName("position")] public FacePosition Position { get; }
-
-        [JsonIgnore] public MemoryStream FaceImage { get; set; }
+        [JsonPropertyName("position")] public FacePosition Position { get; set; }
 
         [JsonPropertyName("vector")] public double[] FeatureVector { get; set; }
 
-        public void Dispose()
-        {
-            FaceImage?.Dispose();
-        }
+        [JsonPropertyName("searchResults")] public FaceSearchResult[] SearchResult { get; set; }
     }
 }

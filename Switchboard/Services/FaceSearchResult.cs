@@ -3,10 +3,12 @@
 namespace Switchboard.Services
 {
     /// <summary>
-    ///     Represents the result for one single face search with top matched faces
+    ///     Represents a matching face with the label "Label" and the similarity "Distance"
     /// </summary>
     public class FaceSearchResult
     {
-        [JsonPropertyName("top_results")] public FaceSearchResultRow[] TopResults { get; set; }
+        [JsonPropertyName("distance")] public double Distance { get; set; }
+
+        [JsonPropertyName("label")] public int Label { get; set; }
     }
 }
