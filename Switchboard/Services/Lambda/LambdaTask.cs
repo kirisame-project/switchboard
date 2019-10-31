@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text.Json.Serialization;
+using SixLabors.ImageSharp;
 
 namespace Switchboard.Services.Lambda
 {
@@ -9,6 +10,9 @@ namespace Switchboard.Services.Lambda
         public LambdaTask(Stream image)
         {
             OriginalImage = image;
+
+            image.Seek(0, SeekOrigin.Begin);
+            OriginalImageInstance = Image.Load(image);
 
             CreationTime = DateTime.Now;
             DetectionSubTask = new DetectionSubTask {State = SubTaskState.Pending};
@@ -30,9 +34,12 @@ namespace Switchboard.Services.Lambda
 
         [JsonIgnore] public Stream OriginalImage { get; }
 
+        [JsonIgnore] public Image OriginalImageInstance { get; set; }
+
         public void Dispose()
         {
-            OriginalImage.Dispose();
+            OriginalImage?.Dispose();
+            OriginalImageInstance?.Dispose();
         }
     }
 }

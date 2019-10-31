@@ -24,10 +24,12 @@ namespace Switchboard.Services.Lambda
             return stream;
         }
 
-        private static async Task UpdateFaceImages(this LambdaTask task, Image originalImage)
+        private static async Task UpdateFaceImages(this LambdaTask task)
         {
             foreach (var face in task.Faces)
-                task.VectorSubTask.FaceImages[face.FaceId] = await Task.Run(() => CropFaceImage(face, originalImage));
+                task.VectorSubTask.FaceImages[face.FaceId] = await Task.Run(() =>
+                    CropFaceImage(face, task.OriginalImageInstance)
+                );
         }
 
         public static async Task RunDetection(this LambdaTask task, IUpstreamService upstream,
@@ -38,7 +40,17 @@ namespace Switchboard.Services.Lambda
             {
                 task.DetectionSubTask.State = SubTaskState.Running;
                 var results = await upstream.FindFacesV2(task.OriginalImage, cancellationToken);
-                task.Faces = results.Select(position => new LambdaFace(position)).ToArray();
+                var maxHeight = task.OriginalImageInstance.Height;
+                var maxWidth = task.OriginalImageInstance.Width;
+                task.Faces = results.Select(position =>
+                {
+                    var face = new LambdaFace(position);
+                    face.Position.X1 = Math.Max(face.Position.X1, 0);
+                    face.Position.X2 = Math.Min(face.Position.X2, maxWidth);
+                    face.Position.Y1 = Math.Max(face.Position.Y1, 0);
+                    face.Position.Y2 = Math.Min(face.Position.Y2, maxHeight);
+                    return face;
+                }).ToArray();
                 task.DetectionSubTask.State = SubTaskState.Completed;
             }
             catch
@@ -61,9 +73,7 @@ namespace Switchboard.Services.Lambda
                 task.VectorSubTask.State = SubTaskState.Running;
 
                 // crop faces in sequence
-                task.OriginalImage.Seek(0, SeekOrigin.Begin);
-                var image = Image.Load(task.OriginalImage);
-                await UpdateFaceImages(task, image);
+                await UpdateFaceImages(task);
 
                 // request vector in parallel
                 await Task.WhenAll(task.Faces.Select(async face =>
