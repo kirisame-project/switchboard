@@ -29,12 +29,19 @@ namespace Switchboard.Controllers.WebSocketized
         public async Task Accept(WebSocket socket, CancellationToken cancellationToken)
         {
             var session = new WebSocketSession(socket, _bufferPool, _sessionConfig);
+            session.OnClose += () => _sessions.Remove(session.SessionId);
+            _sessions.Add(session.SessionId, session);
             await session.Run(cancellationToken);
         }
 
-        public async Task SendToSession(Guid sessionId)
+        public bool TryGetSession(Guid sessionId, out WebSocketSession session)
         {
-            await Task.FromException(new NotImplementedException());
+            return _sessions.TryGetValue(sessionId, out session);
+        }
+
+        public bool ContainsSession(Guid sessionId)
+        {
+            return _sessions.TryGetValue(sessionId, out var session) && session.IsSessionActive();
         }
     }
 }

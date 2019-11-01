@@ -11,6 +11,7 @@ namespace Switchboard.Controllers.WebSocketized
     public class WebSocketShim
     {
         private readonly ObjectPool<byte[]> _bufferPool;
+
         private readonly WebSocket _socket;
 
         public WebSocketShim(WebSocket socket, ObjectPool<byte[]> bufferPool)
@@ -18,6 +19,8 @@ namespace Switchboard.Controllers.WebSocketized
             _socket = socket;
             _bufferPool = bufferPool;
         }
+
+        public WebSocketState State => _socket.State;
 
         public async Task EnsureClosedAsync(WebSocketCloseStatus code, string reason,
             CancellationToken cancellationToken)

@@ -6,22 +6,26 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.ObjectPool;
 using Switchboard.Controllers.WebSocketized.Contracts;
+using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketized
 {
     public class WebSocketSession
     {
         private readonly WebSocketSessionConfiguration _config;
-        private readonly Guid _sessionId;
 
         private readonly WebSocketShim _socket;
+
+        private bool _isHandshakeAccepted;
 
         public WebSocketSession(WebSocket socket, ObjectPool<byte[]> bufferPool, WebSocketSessionConfiguration config)
         {
             _config = config;
             _socket = new WebSocketShim(socket, bufferPool);
-            _sessionId = Guid.NewGuid();
+            SessionId = Guid.NewGuid();
         }
+
+        public Guid SessionId { get; }
 
         public event Action OnClose;
 
@@ -32,8 +36,9 @@ namespace Switchboard.Controllers.WebSocketized
             {
                 ServerId = Guid.Empty,
                 ServerName = Environment.MachineName,
-                SessionId = _sessionId
+                SessionId = SessionId
             }), cancellationToken);
+            _isHandshakeAccepted = true;
         }
 
         private async Task ReceiveForeverAsync(CancellationToken cancellationToken)
@@ -112,6 +117,21 @@ namespace Switchboard.Controllers.WebSocketized
             {
                 OnClose?.Invoke();
             }
+        }
+
+        private async Task SendObjectAsync<T>(T obj, CancellationToken cancellationToken)
+        {
+            await _socket.SendObjectAsync(obj, cancellationToken);
+        }
+
+        public bool IsSessionActive()
+        {
+            return _socket.State == WebSocketState.Open && _isHandshakeAccepted;
+        }
+
+        public async Task SendTaskUpdateAsync(LambdaTask task, CancellationToken token)
+        {
+            await SendObjectAsync(new TaskUpdated(task), token);
         }
     }
 
