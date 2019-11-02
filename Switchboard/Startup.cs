@@ -25,6 +25,7 @@ namespace Switchboard
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
+            app.UseCors((builder) => { builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
             app.UseWebSockets(new WebSocketOptions
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(120)

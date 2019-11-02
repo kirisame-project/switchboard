@@ -5,7 +5,7 @@ using SixLabors.ImageSharp;
 
 namespace Switchboard.Services.Lambda
 {
-    public class LambdaTask : IDisposable
+    public class LambdaTask : SubTaskBase, IDisposable
     {
         public LambdaTask(Stream image)
         {

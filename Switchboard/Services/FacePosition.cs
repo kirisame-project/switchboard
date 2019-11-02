@@ -1,13 +1,15 @@
-﻿namespace Switchboard.Services
+﻿using System.Text.Json.Serialization;
+
+namespace Switchboard.Services
 {
     public class FacePosition
     {
-        public int X1 { get; set; }
+        [JsonPropertyName("x1")] public int X1 { get; set; }
 
-        public int X2 { get; set; }
+        [JsonPropertyName("x2")] public int X2 { get; set; }
 
-        public int Y1 { get; set; }
+        [JsonPropertyName("y1")] public int Y1 { get; set; }
 
-        public int Y2 { get; set; }
+        [JsonPropertyName("y2")] public int Y2 { get; set; }
     }
 }

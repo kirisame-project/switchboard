@@ -56,6 +56,7 @@ namespace Switchboard.Controllers
                 {
                     await task.RunVectoring(_upstreamService, token);
                     await task.RunSearch(_upstreamService, token);
+                    task.Time = (int) (DateTime.Now - task.CreationTime).TotalMilliseconds;
                     await session.SendTaskUpdateAsync(task, token);
                 }, token);
             }
