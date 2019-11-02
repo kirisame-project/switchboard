@@ -50,13 +50,16 @@ namespace Switchboard.Controllers
             await task.RunDetection(_upstreamService, token);
 
             // defer vectoring and search
-            var _ = Task.Run(async () =>
+            if (task.FaceCount > 0)
             {
-                await task.RunVectoring(_upstreamService, token);
-                await task.RunSearch(_upstreamService, token);
-                await session.SendTaskUpdateAsync(task, token);
-            }, token);
-
+                var _ = Task.Run(async () =>
+                {
+                    await task.RunVectoring(_upstreamService, token);
+                    await task.RunSearch(_upstreamService, token);
+                    await session.SendTaskUpdateAsync(task, token);
+                }, token);
+            }
+ 
             return new OkObjectResult(task);
         }
 
