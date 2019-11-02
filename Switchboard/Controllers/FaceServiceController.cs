@@ -12,7 +12,7 @@ using Switchboard.Services.Upstream;
 namespace Switchboard.Controllers
 {
     [ApiController]
-    [Route("api/v1/faces")]
+    [Route("api/v1/lambda")]
     public class FaceServiceController : ControllerBase
     {
         private readonly IUpstreamService _upstreamService;
