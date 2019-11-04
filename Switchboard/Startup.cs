@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
+using InfluxDB.Collector;
+using InfluxDB.Collector.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
+using Switchboard.Metrics;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard
@@ -25,7 +30,7 @@ namespace Switchboard
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
-            app.UseCors((builder) => { builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
+            app.UseCors(builder => { builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
             app.UseWebSockets(new WebSocketOptions
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(120)
@@ -57,6 +62,7 @@ namespace Switchboard
             services.AddLogging(builder => builder.AddConsole());
             services.AddMvc();
 
+            ConfigureMetrics(_configuration, services);
             RegisterComponents(services);
             RegisterConfigurations(_configuration, services);
         }
@@ -70,6 +76,30 @@ namespace Switchboard
             var websocket = new WebSocketSessionConfiguration();
             config.GetSection("websocket").Bind(websocket);
             services.AddSingleton(websocket);
+        }
+
+        private static void RegisterMetrics(IConfiguration configuration, IServiceCollection services)
+        {
+            var config = new MetricsConfiguration();
+            configuration.GetSection("metrics").Bind(config);
+            var influx = config.InfluxDb;
+            var collector = new CollectorConfiguration()
+                .Batch.AtInterval(new TimeSpan(config.FlushInterval))
+                .Tag.With("hostname", Environment.MachineName)
+                .WriteTo.InfluxDB(influx.BaseUri, influx.Database, influx.Username, influx.Password)
+                .CreateCollector();
+            services.AddSingleton(new MeasurementWriterFactory(new Dictionary<string, object>(), collector));
+        }
+
+        private static void ConfigureMetrics(IConfiguration configuration, IServiceCollection services)
+        {
+            RegisterMetrics(configuration, services);
+            CollectorLog.RegisterErrorHandler((message, exception) =>
+            {
+                Console.Error.WriteLine($"InfluxDb.Collector Error: {message}");
+                if (Debugger.IsAttached)
+                    throw exception;
+            });
         }
 
         private static void AddComponent(Type type, ComponentAttribute attribute, IServiceCollection services)
