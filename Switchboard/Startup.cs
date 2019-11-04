@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Reflection;
 using System.Threading;
-using InfluxDB.Collector;
-using InfluxDB.Collector.Diagnostics;
+using InfluxDB.LineProtocol.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
 using Switchboard.Metrics;
+using Switchboard.Metrics.Collector;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard
@@ -78,28 +77,28 @@ namespace Switchboard
             services.AddSingleton(websocket);
         }
 
-        private static void RegisterMetrics(IConfiguration configuration, IServiceCollection services)
+        private static void ConfigureMetrics(IConfiguration configuration, IServiceCollection services)
         {
             var config = new MetricsConfiguration();
             configuration.GetSection("metrics").Bind(config);
             var influx = config.InfluxDb;
-            var collector = new CollectorConfiguration()
-                .Batch.AtInterval(new TimeSpan(config.FlushInterval))
-                .Tag.With("hostname", Environment.MachineName)
-                .WriteTo.InfluxDB(influx.BaseUri, influx.Database, influx.Username, influx.Password)
-                .CreateCollector();
-            services.AddSingleton(new MeasurementWriterFactory(new Dictionary<string, object>(), collector));
-        }
 
-        private static void ConfigureMetrics(IConfiguration configuration, IServiceCollection services)
-        {
-            RegisterMetrics(configuration, services);
-            CollectorLog.RegisterErrorHandler((message, exception) =>
+            var serverBaseAddress = new Uri(influx.BaseUri);
+            var client = new LineProtocolClient(serverBaseAddress, influx.Database, influx.Username, influx.Password);
+
+            var collector = new QueuedMetricsCollector(client);
+            services.AddHostedService(provider =>
             {
-                Console.Error.WriteLine($"InfluxDb.Collector Error: {message}");
-                if (Debugger.IsAttached)
-                    throw exception;
+                var timer = new HostedQueueTimer(collector, TimeSpan.FromSeconds(config.FlushInterval));
+                timer.OnError += e => Console.Error.WriteLine(e);
+                return timer;
             });
+
+            var predefinedTags = new Dictionary<string, string>
+            {
+                {"hostname", Environment.MachineName}
+            };
+            services.AddSingleton(new MeasurementWriterFactory(predefinedTags, collector));
         }
 
         private static void AddComponent(Type type, ComponentAttribute attribute, IServiceCollection services)

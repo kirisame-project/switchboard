@@ -73,9 +73,9 @@ namespace Switchboard.Controllers
             if (!_websockets.TryGetSession(sessionId, out var session) || !session.IsSessionActive())
                 return new BadRequestObjectResult(new ErrorResponse(400, "WebSocket session not found"));
 
-            var metrics = _metrics.GetInstance(new Dictionary<string, object>
+            var metrics = _metrics.GetInstance(new Dictionary<string, string>
             {
-                {"sessionId", sessionId}
+                {"sessionId", sessionId.ToString()}
             });
 
             // retrieve uploaded image
@@ -90,8 +90,8 @@ namespace Switchboard.Controllers
             // start detection task
             var token = CancellationToken.None;
             await task.RunDetection(_upstreamService, token);
-            metrics.Measure(DetectionTime, task.DetectionSubTask.Time);
-            metrics.Measure(FaceCount, task.FaceCount);
+            metrics.Write(DetectionTime, task.DetectionSubTask.Time);
+            metrics.Write(FaceCount, task.FaceCount);
 
             // defer vectoring and search
             if (task.FaceCount > 0)
@@ -103,13 +103,13 @@ namespace Switchboard.Controllers
                     task.Time = (int) (DateTime.Now - task.CreationTime).TotalMilliseconds;
                     await session.SendTaskUpdateAsync(task, token);
 
-                    metrics.Measure(VectorTime, task.VectorSubTask.Time);
-                    metrics.Measure(SearchTime, task.SearchSubTask.Time);
-                    metrics.Measure(Stage2ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
+                    metrics.Write(VectorTime, task.VectorSubTask.Time);
+                    metrics.Write(SearchTime, task.SearchSubTask.Time);
+                    metrics.Write(Stage2ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
                 }, token);
             }
 
-            metrics.Measure(Stage1ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
+            metrics.Write(Stage1ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
             return new OkObjectResult(task);
         }
 
