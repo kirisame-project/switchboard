@@ -13,12 +13,12 @@ namespace Switchboard.Controllers
 {
     [ApiController]
     [Route("api/v1/lambda")]
-    public class FaceServiceController : ControllerBase
+    public class HttpApiController : ControllerBase
     {
         private readonly IUpstreamService _upstreamService;
         private readonly WebSocketController _websockets;
 
-        public FaceServiceController(IUpstreamService upstreamService, WebSocketController websockets)
+        public HttpApiController(IUpstreamService upstreamService, WebSocketController websockets)
         {
             _upstreamService = upstreamService;
             _websockets = websockets;
