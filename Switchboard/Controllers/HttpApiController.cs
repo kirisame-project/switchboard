@@ -2,6 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using App.Metrics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Switchboard.Controllers.ResponseContracts;
@@ -17,11 +18,13 @@ namespace Switchboard.Controllers
     {
         private readonly IUpstreamService _upstreamService;
         private readonly WebSocketController _websockets;
+        private readonly IMetrics _metrics;
 
-        public FaceServiceController(IUpstreamService upstreamService, WebSocketController websockets)
+        public FaceServiceController(IUpstreamService upstreamService, WebSocketController websockets, IMetrics metrics)
         {
             _upstreamService = upstreamService;
             _websockets = websockets;
+            _metrics = metrics;
         }
 
         [Consumes("image/jpeg")]
@@ -32,6 +35,8 @@ namespace Switchboard.Controllers
         public async Task<IActionResult> DoStandardRequest([FromHeader(Name = "X-WebSocket-Session-Id")]
             Guid sessionId)
         {
+            var time = DateTime.Now;
+
             // test if websocket session exists
             if (!_websockets.TryGetSession(sessionId, out var session) || !session.IsSessionActive())
                 return new BadRequestObjectResult(new ErrorResponse(400, "WebSocket session not found"));
@@ -49,6 +54,9 @@ namespace Switchboard.Controllers
             var token = CancellationToken.None;
             await task.RunDetection(_upstreamService, token);
 
+            _metrics.Measure.Histogram.Update(MetricsRegistry.StandardRequestFaceCount, task.FaceCount);
+            _metrics.Measure.Histogram.Update(MetricsRegistry.StandardRequestDetectionTime, task.DetectionSubTask.Time);
+
             // defer vectoring and search
             if (task.FaceCount > 0)
             {
@@ -58,9 +66,18 @@ namespace Switchboard.Controllers
                     await task.RunSearch(_upstreamService, token);
                     task.Time = (int) (DateTime.Now - task.CreationTime).TotalMilliseconds;
                     await session.SendTaskUpdateAsync(task, token);
+
+                    _metrics.Measure.Histogram.Update(MetricsRegistry.StandardRequestVectorTime, task.VectorSubTask.Time);
+                    _metrics.Measure.Histogram.Update(MetricsRegistry.StandardRequestSearchTime, task.SearchSubTask.Time);
+
+                    var stage2Time = (int) (DateTime.Now - time).TotalMilliseconds;
+                    _metrics.Measure.Histogram.Update(MetricsRegistry.StandardRequestStage2Time, stage2Time);
                 }, token);
             }
- 
+
+            var stage1Time = (int) (DateTime.Now - time).TotalMilliseconds;
+            _metrics.Measure.Histogram.Update(MetricsRegistry.StandardRequestStage1Time, stage1Time);
+
             return new OkObjectResult(task);
         }
 

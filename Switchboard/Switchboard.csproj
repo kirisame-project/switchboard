@@ -5,6 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="App.Metrics" Version="3.2.0" />
+    <PackageReference Include="App.Metrics.AspNetCore" Version="3.2.0" />
+    <PackageReference Include="App.Metrics.AspNetCore.Tracking" Version="3.2.0" />
+    <PackageReference Include="App.Metrics.Reporting.Console" Version="3.2.0" />
+    <PackageReference Include="App.Metrics.Reporting.InfluxDB" Version="3.2.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0007" />
   </ItemGroup>
 
