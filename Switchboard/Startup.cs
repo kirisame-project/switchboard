@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using InfluxDB.LineProtocol.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +11,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
+using Switchboard.Metrics;
+using Switchboard.Metrics.Collector;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard
@@ -25,7 +29,7 @@ namespace Switchboard
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
-            app.UseCors((builder) => { builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
+            app.UseCors(builder => { builder.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod(); });
             app.UseWebSockets(new WebSocketOptions
             {
                 KeepAliveInterval = TimeSpan.FromSeconds(120)
@@ -57,6 +61,7 @@ namespace Switchboard
             services.AddLogging(builder => builder.AddConsole());
             services.AddMvc();
 
+            ConfigureMetrics(_configuration, services);
             RegisterComponents(services);
             RegisterConfigurations(_configuration, services);
         }
@@ -70,6 +75,30 @@ namespace Switchboard
             var websocket = new WebSocketSessionConfiguration();
             config.GetSection("websocket").Bind(websocket);
             services.AddSingleton(websocket);
+        }
+
+        private static void ConfigureMetrics(IConfiguration configuration, IServiceCollection services)
+        {
+            var config = new MetricsConfiguration();
+            configuration.GetSection("metrics").Bind(config);
+            var influx = config.InfluxDb;
+
+            var serverBaseAddress = new Uri(influx.BaseUri);
+            var client = new LineProtocolClient(serverBaseAddress, influx.Database, influx.Username, influx.Password);
+
+            var collector = new QueuedMetricsCollector(client);
+            services.AddHostedService(provider =>
+            {
+                var timer = new HostedQueueTimer(collector, TimeSpan.FromSeconds(config.FlushInterval));
+                timer.OnError += e => Console.Error.WriteLine(e);
+                return timer;
+            });
+
+            var predefinedTags = new Dictionary<string, string>
+            {
+                {"hostname", Environment.MachineName}
+            };
+            services.AddSingleton(new MeasurementWriterFactory(predefinedTags, collector));
         }
 
         private static void AddComponent(Type type, ComponentAttribute attribute, IServiceCollection services)
