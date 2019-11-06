@@ -4,44 +4,57 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.ObjectPool;
 using Switchboard.Common;
 
 namespace Switchboard.Controllers.WebSocketized
 {
     [Component(ComponentLifestyle.Singleton)]
-    public class WebSocketController
+    public class WebSocketController : IDisposable, IWebSocketController
     {
         private const int BufferSize = 1024 * 1024;
 
-        private readonly ObjectPool<byte[]> _bufferPool;
+        private const int MaxBufferCount = 16;
+
+        private readonly WebSocketBufferPool _bufferPool;
+
         private readonly WebSocketSessionConfiguration _sessionConfig;
 
-        private readonly IDictionary<Guid, WebSocketSession> _sessions;
+        private readonly IDictionary<Guid, IWebSocketSession> _sessions;
 
         public WebSocketController(WebSocketSessionConfiguration sessionConfig)
         {
             _sessionConfig = sessionConfig;
-            _bufferPool = new DefaultObjectPool<byte[]>(new EasyObjectPoolPolicy<byte[]>(() => new byte[BufferSize]));
-            _sessions = new ConcurrentDictionary<Guid, WebSocketSession>();
+            _bufferPool = new WebSocketBufferPool(BufferSize, MaxBufferCount);
+            _sessions = new ConcurrentDictionary<Guid, IWebSocketSession>();
         }
 
-        public async Task Accept(WebSocket socket, CancellationToken cancellationToken)
+        public void Dispose()
+        {
+            foreach (var (_, session) in _sessions)
+                session.Dispose();
+        }
+
+        public async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
             var session = new WebSocketSession(socket, _bufferPool, _sessionConfig);
-            session.OnClose += () => _sessions.Remove(session.SessionId);
-            _sessions.Add(session.SessionId, session);
-            await session.Run(cancellationToken);
+
+            var sessionId = session.SessionId;
+            session.OnClose += () => _sessions.Remove(sessionId);
+            _sessions.Add(sessionId, session);
+
+            try
+            {
+                await session.RunAsync(cancellationToken);
+            }
+            finally
+            {
+                session.Dispose();
+            }
         }
 
-        public bool TryGetSession(Guid sessionId, out WebSocketSession session)
+        public bool TryGetSession(Guid sessionId, out IWebSocketSession session)
         {
             return _sessions.TryGetValue(sessionId, out session);
-        }
-
-        public bool ContainsSession(Guid sessionId)
-        {
-            return _sessions.TryGetValue(sessionId, out var session) && session.IsSessionActive();
         }
     }
 }

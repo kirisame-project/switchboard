@@ -70,7 +70,7 @@ namespace Switchboard.Controllers
             var startTime = DateTime.Now;
 
             // test if websocket session exists
-            if (!_websockets.TryGetSession(sessionId, out var session) || !session.IsSessionActive())
+            if (!_websockets.TryGetSession(sessionId, out var session) || !session.SessionActive)
                 return new BadRequestObjectResult(new ErrorResponse(400, "WebSocket session not found"));
 
             var metrics = _metrics.GetInstance(new Dictionary<string, string>

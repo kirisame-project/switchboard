@@ -4,28 +4,84 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.ObjectPool;
 using Switchboard.Controllers.WebSocketized.Contracts;
 using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketized
 {
-    public class WebSocketSession
+    public class WebSocketSession : IDisposable, IWebSocketSession
     {
         private readonly WebSocketSessionConfiguration _config;
 
-        private readonly WebSocketShim _socket;
-
         private bool _isHandshakeAccepted;
 
-        public WebSocketSession(WebSocket socket, ObjectPool<byte[]> bufferPool, WebSocketSessionConfiguration config)
+        private readonly WebSocketShim _socket;
+
+        public WebSocketSession(WebSocket socket, WebSocketBufferPool bufferPool, WebSocketSessionConfiguration config)
         {
-            _config = config;
             _socket = new WebSocketShim(socket, bufferPool);
+            _config = config;
             SessionId = Guid.NewGuid();
         }
 
+        public void Dispose()
+        {
+            _socket?.Dispose();
+        }
+
         public Guid SessionId { get; }
+
+        public async Task RunAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Handshake(cancellationToken);
+                await ReceiveForeverAsync(cancellationToken);
+                await _socket.EnsureClosedAsync(
+                    WebSocketCloseStatus.NormalClosure,
+                    "Normal closure",
+                    cancellationToken);
+            }
+            catch (JsonException)
+            {
+                await _socket.SendObjectAsync(new ConnectionClosed
+                {
+                    Error = "JSON deserialization failed",
+                    Reason = "Unexpected exception"
+                }, cancellationToken);
+                await _socket.EnsureClosedAsync(
+                    WebSocketCloseStatus.ProtocolError,
+                    "JSON deserialization failed",
+                    cancellationToken);
+            }
+            catch (WebSocketOperationException e)
+            {
+                await _socket.SendObjectAsync(new ConnectionClosed
+                {
+                    Error = e.Message,
+                    Reason = "WebSocket operation failed"
+                }, cancellationToken);
+                await _socket.EnsureClosedAsync(e.Code, e.Message, cancellationToken);
+            }
+            catch (Exception)
+            {
+                await _socket.EnsureClosedAsync(
+                    WebSocketCloseStatus.InternalServerError,
+                    "Abnormal closure",
+                    cancellationToken);
+            }
+            finally
+            {
+                OnClose?.Invoke();
+            }
+        }
+
+        public bool SessionActive => _socket.State == WebSocketState.Open && _isHandshakeAccepted;
+
+        public async Task SendTaskUpdateAsync(LambdaTask task, CancellationToken token)
+        {
+            await SendObjectAsync(new TaskUpdated(task), token);
+        }
 
         public event Action OnClose;
 
@@ -74,64 +130,9 @@ namespace Switchboard.Controllers.WebSocketized
             }
         }
 
-        public async Task Run(CancellationToken cancellationToken)
-        {
-            try
-            {
-                await Handshake(cancellationToken);
-                await ReceiveForeverAsync(cancellationToken);
-                await _socket.EnsureClosedAsync(
-                    WebSocketCloseStatus.NormalClosure,
-                    "Normal closure",
-                    cancellationToken);
-            }
-            catch (JsonException)
-            {
-                await _socket.SendObjectAsync(new ConnectionClosed
-                {
-                    Error = "JSON deserialization failed",
-                    Reason = "Unexpected exception"
-                }, cancellationToken);
-                await _socket.EnsureClosedAsync(
-                    WebSocketCloseStatus.ProtocolError,
-                    "JSON deserialization failed",
-                    cancellationToken);
-            }
-            catch (WebSocketOperationException e)
-            {
-                await _socket.SendObjectAsync(new ConnectionClosed
-                {
-                    Error = e.Message,
-                    Reason = "WebSocket operation failed"
-                }, cancellationToken);
-                await _socket.EnsureClosedAsync(e.Code, e.Message, cancellationToken);
-            }
-            catch (Exception)
-            {
-                await _socket.EnsureClosedAsync(
-                    WebSocketCloseStatus.InternalServerError,
-                    "Abnormal closure",
-                    cancellationToken);
-            }
-            finally
-            {
-                OnClose?.Invoke();
-            }
-        }
-
         private async Task SendObjectAsync<T>(T obj, CancellationToken cancellationToken)
         {
             await _socket.SendObjectAsync(obj, cancellationToken);
-        }
-
-        public bool IsSessionActive()
-        {
-            return _socket.State == WebSocketState.Open && _isHandshakeAccepted;
-        }
-
-        public async Task SendTaskUpdateAsync(LambdaTask task, CancellationToken token)
-        {
-            await SendObjectAsync(new TaskUpdated(task), token);
         }
     }
 

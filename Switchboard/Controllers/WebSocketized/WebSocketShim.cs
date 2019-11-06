@@ -4,23 +4,33 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.ObjectPool;
 
 namespace Switchboard.Controllers.WebSocketized
 {
-    public class WebSocketShim
+    public class WebSocketShim : IDisposable
     {
-        private readonly ObjectPool<byte[]> _bufferPool;
+        private const int MaxBufferCount = 3;
+
+        private readonly WebSocketBufferPool _bufferPool;
+
+        private readonly SemaphoreSlim _bufferSemaphore = new SemaphoreSlim(MaxBufferCount);
 
         private readonly WebSocket _socket;
 
-        public WebSocketShim(WebSocket socket, ObjectPool<byte[]> bufferPool)
+        public WebSocketShim(WebSocket socket, WebSocketBufferPool bufferPool)
         {
             _socket = socket;
             _bufferPool = bufferPool;
         }
 
         public WebSocketState State => _socket.State;
+
+        public void Dispose()
+        {
+            _bufferPool.Reduce(MaxBufferCount);
+            _bufferSemaphore?.Dispose();
+            _socket?.Dispose();
+        }
 
         public async Task EnsureClosedAsync(WebSocketCloseStatus code, string reason,
             CancellationToken cancellationToken)
@@ -31,6 +41,7 @@ namespace Switchboard.Controllers.WebSocketized
 
         public async Task<WebSocketMessageType> ReceiveMessageAsync(Stream output, CancellationToken cancellationToken)
         {
+            await _bufferSemaphore.WaitAsync(cancellationToken);
             var buffer = _bufferPool.Get();
             try
             {
@@ -57,6 +68,7 @@ namespace Switchboard.Controllers.WebSocketized
             finally
             {
                 _bufferPool.Return(buffer);
+                _bufferSemaphore.Release();
             }
         }
 
@@ -72,6 +84,7 @@ namespace Switchboard.Controllers.WebSocketized
         {
             var buffer = _bufferPool.Get();
             try
+
             {
                 await using var stream = new MemoryStream(buffer, true);
                 await JsonSerializer.SerializeAsync(stream, obj, cancellationToken: cancellationToken);
