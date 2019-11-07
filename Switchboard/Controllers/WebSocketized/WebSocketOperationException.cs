@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 
 namespace Switchboard.Controllers.WebSocketized
 {
+    [Obsolete]
     public class WebSocketOperationException : Exception
     {
         public WebSocketOperationException(string message,

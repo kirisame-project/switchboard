@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Switchboard.Common;
 
 namespace Switchboard.Controllers.WebSocketized
 {
-    [Component(ComponentLifestyle.Singleton)]
+    [Obsolete]
     public class WebSocketController : IDisposable, IWebSocketController
     {
         private const int BufferSize = 1024 * 1024;

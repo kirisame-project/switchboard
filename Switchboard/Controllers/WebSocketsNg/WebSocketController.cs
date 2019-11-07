@@ -9,7 +9,7 @@ using Switchboard.Controllers.WebSocketized;
 
 namespace Switchboard.Controllers.WebSocketsNg
 {
-    [Component(ComponentLifestyle.Singleton)]
+    [Component(ComponentLifestyle.Singleton, Implements = typeof(IWebSocketController))]
     public class WebSocketController : IWebSocketController
     {
         private readonly MemoryStreamPool _memoryStreamPool;

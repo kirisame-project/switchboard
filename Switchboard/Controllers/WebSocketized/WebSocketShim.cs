@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Switchboard.Controllers.WebSocketized
 {
+    [Obsolete]
     public class WebSocketShim : IDisposable
     {
         private const int MaxBufferCount = 3;

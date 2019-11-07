@@ -26,6 +26,13 @@ namespace Switchboard.Controllers.WebSocketsNg
             _socket?.Dispose();
         }
 
+        public async Task EnsureClosedAsync(WebSocketCloseStatus code, string reason,
+            CancellationToken cancellationToken)
+        {
+            if (_socket.State == WebSocketState.Open)
+                await _socket.CloseAsync(code, reason, cancellationToken);
+        }
+
         public async Task<RentedObjectHolder<MemoryStream>> ReceiveMessageAsync(CancellationToken cancellationToken)
         {
             var stream = _streamPool.Get();
@@ -38,7 +45,7 @@ namespace Switchboard.Controllers.WebSocketsNg
                     await stream.WriteAsync(buffer, (int) stream.Position, result.Count, cancellationToken);
 
                     if (!result.EndOfMessage) continue;
-                    
+
                     return new RentedObjectHolder<MemoryStream>(stream, _streamPool);
                 }
 
@@ -57,9 +64,9 @@ namespace Switchboard.Controllers.WebSocketsNg
             try
             {
                 await JsonSerializer.SerializeAsync(stream, obj, cancellationToken: cancellationToken);
-                
+
                 stream.Seek(0, SeekOrigin.Begin);
-                
+
                 var buffer = new byte[ChunkBufferSize];
                 var offset = 0;
                 for (; offset + ChunkBufferSize < stream.Length; offset += ChunkBufferSize)

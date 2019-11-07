@@ -49,9 +49,9 @@ namespace Switchboard.Controllers
 
         private readonly MeasurementWriterFactory _metrics;
         private readonly IUpstreamService _upstreamService;
-        private readonly WebSocketController _websockets;
+        private readonly IWebSocketController _websockets;
 
-        public HttpApiController(IUpstreamService upstreamService, WebSocketController websockets,
+        public HttpApiController(IUpstreamService upstreamService, IWebSocketController websockets,
             MeasurementWriterFactory metrics)
         {
             _upstreamService = upstreamService;

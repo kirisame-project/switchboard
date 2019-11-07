@@ -1,8 +1,11 @@
 ﻿using System;
+using System.IO;
 using System.Net.WebSockets;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Switchboard.Controllers.WebSocketized;
+using Switchboard.Controllers.WebSocketized.Contracts;
 using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketsNg
@@ -30,14 +33,30 @@ namespace Switchboard.Controllers.WebSocketsNg
             {
                 await Handshake(cancellationToken);
                 SessionActive = true;
+
                 while (!cancellationToken.IsCancellationRequested)
                     if (!await TryHandleMessage())
+                    {
+                        await _socket.EnsureClosedAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
+                            cancellationToken);
                         return;
+                    }
+
+                await _socket.EnsureClosedAsync(WebSocketCloseStatus.InternalServerError, "Session cancelled",
+                    CancellationToken.None);
                 throw new OperationCanceledException(cancellationToken);
             }
             catch (WebSocketException)
             {
-                throw new NotImplementedException("Unhandled WebSocket exceptions");
+                await _socket.EnsureClosedAsync(WebSocketCloseStatus.ProtocolError, "WebSocket operation failed",
+                    cancellationToken);
+                throw;
+            }
+            catch
+            {
+                await _socket.EnsureClosedAsync(WebSocketCloseStatus.InternalServerError, "Internal server error",
+                    cancellationToken);
+                throw;
             }
             finally
             {
@@ -54,12 +73,28 @@ namespace Switchboard.Controllers.WebSocketsNg
 
         private Task<bool> TryHandleMessage()
         {
-            throw new NotImplementedException();
+            return Task.FromResult(true);
         }
 
-        private Task Handshake(CancellationToken cancellationToken)
+        private async Task Handshake(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            using var streamHolder = await _socket.ReceiveMessageAsync(cancellationToken);
+            var stream = streamHolder.Object;
+
+            stream.Seek(0, SeekOrigin.Begin);
+            var str = await new StreamReader(stream).ReadToEndAsync();
+
+            stream.Seek(0, SeekOrigin.Begin);
+            var _ = await JsonSerializer.DeserializeAsync<ClientHandshake>(stream,
+                cancellationToken: cancellationToken);
+
+            var serverHandshake = new ServerHandshake(new ServerHandshake.ServerHandshakePayload
+            {
+                ServerId = Guid.Empty,
+                ServerName = Environment.MachineName,
+                SessionId = SessionId
+            });
+            await _socket.SendObjectAsync(serverHandshake, cancellationToken);
         }
     }
 }

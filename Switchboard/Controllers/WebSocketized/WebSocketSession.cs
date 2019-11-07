@@ -9,13 +9,14 @@ using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketized
 {
+    [Obsolete]
     public class WebSocketSession : IDisposable, IWebSocketSession
     {
         private readonly WebSocketSessionConfiguration _config;
 
-        private bool _isHandshakeAccepted;
-
         private readonly WebSocketShim _socket;
+
+        private bool _isHandshakeAccepted;
 
         public WebSocketSession(WebSocket socket, WebSocketBufferPool bufferPool, WebSocketSessionConfiguration config)
         {

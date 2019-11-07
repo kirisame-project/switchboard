@@ -1,7 +1,9 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 
 namespace Switchboard.Controllers.WebSocketized
 {
+    [Obsolete]
     public class WebSocketBufferPool
     {
         private readonly ConcurrentBag<byte[]> _buffers;
