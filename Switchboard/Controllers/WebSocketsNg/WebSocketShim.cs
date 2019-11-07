@@ -35,10 +35,10 @@ namespace Switchboard.Controllers.WebSocketsNg
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var result = await _socket.ReceiveAsync(buffer, cancellationToken);
-                    await stream.WriteAsync(buffer, cancellationToken);
+                    await stream.WriteAsync(buffer, (int) stream.Position, result.Count, cancellationToken);
 
                     if (!result.EndOfMessage) continue;
-
+                    
                     return new RentedObjectHolder<MemoryStream>(stream, _streamPool);
                 }
 
@@ -57,9 +57,10 @@ namespace Switchboard.Controllers.WebSocketsNg
             try
             {
                 await JsonSerializer.SerializeAsync(stream, obj, cancellationToken: cancellationToken);
-
+                
+                stream.Seek(0, SeekOrigin.Begin);
+                
                 var buffer = new byte[ChunkBufferSize];
-
                 var offset = 0;
                 for (; offset + ChunkBufferSize < stream.Length; offset += ChunkBufferSize)
                 {
