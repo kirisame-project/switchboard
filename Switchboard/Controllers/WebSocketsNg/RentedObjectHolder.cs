@@ -6,9 +6,9 @@ namespace Switchboard.Controllers.WebSocketsNg
     {
         private readonly IObjectOwner<T> _owner;
 
-        public RentedObjectHolder(T obj, IObjectOwner<T> owner)
+        public RentedObjectHolder(T stream, IObjectOwner<T> owner)
         {
-            Object = obj;
+            Object = stream;
             _owner = owner;
         }
 

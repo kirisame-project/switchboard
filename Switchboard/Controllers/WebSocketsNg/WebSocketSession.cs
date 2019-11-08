@@ -1,100 +1,39 @@
 ﻿using System;
-using System.IO;
 using System.Net.WebSockets;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Switchboard.Controllers.WebSocketized;
 using Switchboard.Controllers.WebSocketized.Contracts;
-using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketsNg
 {
-    public class WebSocketSession : IWebSocketSession
+    internal class WebSocketSession : WebSocketSessionBase
     {
-        private readonly WebSocketShim _socket;
-
-        public WebSocketSession(WebSocket socket, MemoryStreamPool memoryStreamPool)
+        public WebSocketSession(WebSocket socket, MemoryStreamPool memoryStreamPool) : base(socket, memoryStreamPool)
         {
-            _socket = new WebSocketShim(socket, memoryStreamPool);
-            SessionId = Guid.NewGuid();
         }
 
-        public Guid SessionId { get; }
-
-        public void Dispose()
+        protected override async Task<bool> TryHandleMessage(CancellationToken cancellationToken)
         {
-            _socket?.Dispose();
-        }
-
-        public async Task RunAsync(CancellationToken cancellationToken)
-        {
-            try
+            var ctx = await Socket.ReceiveObjectAsync(cancellationToken);
+            var message = await ctx.DeserializeAsync<Message>(cancellationToken);
+            switch (message.OperationCode)
             {
-                await Handshake(cancellationToken);
-                SessionActive = true;
-
-                while (!cancellationToken.IsCancellationRequested)
-                    if (!await TryHandleMessage())
-                    {
-                        await _socket.EnsureClosedAsync(WebSocketCloseStatus.NormalClosure, "Normal closure",
-                            cancellationToken);
-                        return;
-                    }
-
-                await _socket.EnsureClosedAsync(WebSocketCloseStatus.InternalServerError, "Session cancelled",
-                    CancellationToken.None);
-                throw new OperationCanceledException(cancellationToken);
+                case OperationCode.Close:
+                    await Socket.EnsureClosedAsync(WebSocketCloseStatus.NormalClosure,
+                        "Closure requested by the client", cancellationToken);
+                    return false;
+                case OperationCode.Handshake:
+                    await Socket.EnsureClosedAsync(WebSocketCloseStatus.ProtocolError,
+                        "Session has already completed handshake", cancellationToken);
+                    return false;
+                case OperationCode.Heartbeat:
+                    // TODO: implements heartbeat
+                    return true;
+                case OperationCode.TaskInit:
+                    return true;
+                default:
+                    throw new NotImplementedException();
             }
-            catch (WebSocketException)
-            {
-                await _socket.EnsureClosedAsync(WebSocketCloseStatus.ProtocolError, "WebSocket operation failed",
-                    cancellationToken);
-                throw;
-            }
-            catch
-            {
-                await _socket.EnsureClosedAsync(WebSocketCloseStatus.InternalServerError, "Internal server error",
-                    cancellationToken);
-                throw;
-            }
-            finally
-            {
-                SessionActive = false;
-            }
-        }
-
-        public Task SendTaskUpdateAsync(LambdaTask task, CancellationToken token)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool SessionActive { get; private set; }
-
-        private Task<bool> TryHandleMessage()
-        {
-            return Task.FromResult(true);
-        }
-
-        private async Task Handshake(CancellationToken cancellationToken)
-        {
-            using var streamHolder = await _socket.ReceiveMessageAsync(cancellationToken);
-            var stream = streamHolder.Object;
-
-            stream.Seek(0, SeekOrigin.Begin);
-            var str = await new StreamReader(stream).ReadToEndAsync();
-
-            stream.Seek(0, SeekOrigin.Begin);
-            var _ = await JsonSerializer.DeserializeAsync<ClientHandshake>(stream,
-                cancellationToken: cancellationToken);
-
-            var serverHandshake = new ServerHandshake(new ServerHandshake.ServerHandshakePayload
-            {
-                ServerId = Guid.Empty,
-                ServerName = Environment.MachineName,
-                SessionId = SessionId
-            });
-            await _socket.SendObjectAsync(serverHandshake, cancellationToken);
         }
     }
 }

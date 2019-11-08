@@ -13,6 +13,6 @@ namespace Switchboard.Controllers.WebSocketized
 
         Task RunAsync(CancellationToken cancellationToken);
 
-        Task SendTaskUpdateAsync(LambdaTask task, CancellationToken token);
+        Task SendTaskUpdateAsync(LambdaTask task, CancellationToken cancellationToken);
     }
 }

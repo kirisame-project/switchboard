@@ -24,7 +24,7 @@ namespace Switchboard.Controllers.WebSocketsNg
 
         public async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
-            using var session = new WebSocketSession(socket, _memoryStreamPool);
+            using var session = new WebSocketSession(socket, _memoryStreamPool) as IWebSocketSession;
             try
             {
                 _sessions.Add(session.SessionId, session);
