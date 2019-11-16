@@ -1,6 +1,6 @@
 namespace Switchboard.Controllers.WebSocketized.Contracts
 {
-    public enum OperationCode
+    public enum OperationCodes
     {
         Close = 1,
         Handshake = 2,

@@ -4,9 +4,8 @@ namespace Switchboard.Controllers.WebSocketized.Contracts
 {
     public class TaskUpdated : MessageWithPayload<LambdaTask>
     {
-        public TaskUpdated(LambdaTask task)
+        public TaskUpdated(LambdaTask task) : base((int) OperationCodes.TaskUpdated)
         {
-            OperationCode = OperationCode.TaskUpdated;
             Payload = task;
         }
     }

@@ -5,9 +5,8 @@ namespace Switchboard.Controllers.WebSocketized.Contracts
 {
     public class ServerHandshake : MessageWithPayload<ServerHandshake.ServerHandshakePayload>
     {
-        public ServerHandshake(ServerHandshakePayload payload)
+        public ServerHandshake(ServerHandshakePayload payload) : base((int) OperationCodes.Handshake)
         {
-            OperationCode = OperationCode.Handshake;
             Payload = payload;
         }
 

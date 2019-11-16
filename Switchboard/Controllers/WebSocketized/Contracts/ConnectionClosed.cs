@@ -2,10 +2,13 @@ using System.Text.Json.Serialization;
 
 namespace Switchboard.Controllers.WebSocketized.Contracts
 {
-    public class ConnectionClosed
+    public class ConnectionClosed : Message
     {
-        [JsonPropertyName("error")] public string Error { get; set; }
-
         [JsonPropertyName("reason")] public string Reason { get; set; }
+
+        public ConnectionClosed(int code, string reason) : base(code)
+        {
+            
+        }
     }
 }

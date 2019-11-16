@@ -5,6 +5,10 @@ namespace Switchboard.Controllers.WebSocketized.Contracts
 {
     public class ClientHandshake : MessageWithPayload<ClientHandshake.ClientHandshakePayload>
     {
+        public ClientHandshake() : base((int) OperationCodes.Handshake)
+        {
+        }
+
         public class ClientHandshakePayload
         {
             [JsonPropertyName("id")] public Guid ClientId { get; set; }

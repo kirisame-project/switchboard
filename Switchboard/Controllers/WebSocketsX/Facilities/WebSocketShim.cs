@@ -5,8 +5,9 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
 
-namespace Switchboard.Controllers.WebSocketsNg
+namespace Switchboard.Controllers.WebSocketsX.Facilities
 {
     internal class WebSocketShim : IDisposable
     {
@@ -68,9 +69,9 @@ namespace Switchboard.Controllers.WebSocketsNg
             }
         }
 
-        public async Task<RentedObjectHolder<MemoryStream>> ReceiveStreamAsync(CancellationToken cancellationToken)
+        public async Task<ObjectHolder<MemoryStream>> ReceiveStreamAsync(CancellationToken cancellationToken)
         {
-            return new RentedObjectHolder<MemoryStream>(await ReceiveMessageAsync(cancellationToken), _streamPool);
+            return new ObjectHolder<MemoryStream>(await ReceiveMessageAsync(cancellationToken), _streamPool);
         }
 
         public async Task<T> ReceiveObjectAsync<T>(CancellationToken cancellationToken)

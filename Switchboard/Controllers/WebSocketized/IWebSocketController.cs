@@ -1,14 +1,18 @@
 ﻿using System;
-using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketized
 {
-    public interface IWebSocketController
+    public interface IWebSocketController : IDisposable
     {
-        Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken);
+        Guid SessionId { get; }
 
-        bool TryGetSession(Guid sessionId, out IWebSocketSession session);
+        bool SessionActive { get; }
+
+        Task RunAsync(CancellationToken cancellationToken);
+
+        Task SendTaskUpdateAsync(LambdaTask task, CancellationToken cancellationToken);
     }
 }

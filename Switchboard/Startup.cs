@@ -43,7 +43,7 @@ namespace Switchboard
                     {
                         using var scope = app.ApplicationServices.CreateScope();
                         using var socket = await context.WebSockets.AcceptWebSocketAsync();
-                        var controller = scope.ServiceProvider.GetService<IWebSocketController>();
+                        var controller = scope.ServiceProvider.GetService<IWebSocketRootController>();
                         await controller.AcceptAsync(socket, CancellationToken.None);
                     }
                     else

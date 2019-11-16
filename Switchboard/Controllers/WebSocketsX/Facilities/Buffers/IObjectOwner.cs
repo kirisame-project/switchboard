@@ -1,4 +1,4 @@
-﻿namespace Switchboard.Controllers.WebSocketsNg
+﻿namespace Switchboard.Controllers.WebSocketsX.Facilities.Buffers
 {
     internal interface IObjectOwner<in T>
     {
