@@ -2,9 +2,9 @@
 
 namespace Switchboard.Controllers.WebSocketsX.Facilities.Attributes
 {
-    public class WebSocketOperationHandlerAttribute : Attribute
+    public class OperationHandlerAttribute : Attribute
     {
-        public WebSocketOperationHandlerAttribute(int opCode, Type messageType)
+        public OperationHandlerAttribute(int opCode, Type messageType)
         {
             OperationCode = opCode;
             MessageType = messageType;

@@ -3,15 +3,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Switchboard.Services.Lambda;
 
-namespace Switchboard.Controllers.WebSocketized
+namespace Switchboard.Controllers.WebSocketized.Abstractions
 {
-    public interface IWebSocketController : IDisposable
+    internal interface IWebSocketSession
     {
         Guid SessionId { get; }
 
-        bool SessionActive { get; }
-
-        Task RunAsync(CancellationToken cancellationToken);
+        WebSocketSessionState SessionState { get; }
 
         Task SendTaskUpdateAsync(LambdaTask task, CancellationToken cancellationToken);
     }

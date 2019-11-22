@@ -2,16 +2,13 @@
 
 namespace Switchboard.Controllers.WebSocketsX.Facilities.Attributes
 {
-    internal class WebSocketOperationHandlerContext
+    internal class OperationHandlerContext
     {
-        public WebSocketOperationHandlerContext(Message message, WebSocketShim socket)
+        public OperationHandlerContext(Message message)
         {
             Message = message;
-            Socket = socket;
         }
 
         public Message Message { get; }
-
-        public WebSocketShim Socket { get; }
     }
 }

@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Switchboard.Controllers.ResponseContracts;
-using Switchboard.Controllers.WebSocketized;
 using Switchboard.Metrics;
 using Switchboard.Services.Lambda;
 using Switchboard.Services.Upstream;
