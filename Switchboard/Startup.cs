@@ -38,7 +38,7 @@ namespace Switchboard
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
-                endpoints.Map("/api/v1/lambda/socket", async context =>
+                endpoints.Map("/api/v2/websocket", async context =>
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {

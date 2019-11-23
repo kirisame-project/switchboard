@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Switchboard.Services.Lambda;
+using Switchboard.Services.FaceRecognition;
 
 namespace Switchboard.Controllers.WebSocketized.Abstractions
 {
@@ -11,6 +11,6 @@ namespace Switchboard.Controllers.WebSocketized.Abstractions
 
         WebSocketSessionState SessionState { get; }
 
-        Task SendTaskUpdateAsync(LambdaTask task, CancellationToken cancellationToken);
+        Task SendTaskUpdateAsync(RecognitionTask task, CancellationToken cancellationToken);
     }
 }

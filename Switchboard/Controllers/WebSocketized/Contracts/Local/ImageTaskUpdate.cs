@@ -1,10 +1,11 @@
-﻿using Switchboard.Services.Lambda;
+﻿using Switchboard.Services.FaceRecognition;
+using Switchboard.Services.Lambda;
 
 namespace Switchboard.Controllers.WebSocketized.Contracts.Local
 {
     internal class ImageTaskUpdate : MessageWithPayload<LambdaTask>
     {
-        public ImageTaskUpdate(LambdaTask task) : base((int) OperationCodes.ImageTaskUpdated, task)
+        public ImageTaskUpdate(RecognitionTask task) : base((int) OperationCodes.ImageTaskUpdated, task)
         {
         }
     }

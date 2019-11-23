@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Switchboard.Controllers.ResponseContracts;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
+using Switchboard.Services.FaceRecognition;
 using Switchboard.Services.Lambda;
 using Switchboard.Services.Upstream;
 
@@ -87,7 +88,7 @@ namespace Switchboard.Controllers
             await Request.Body.CopyToAsync(image);
 
             // create task
-            var task = new LambdaTask(image);
+            var task = new RecognitionTask(image);
 
             // start detection task
             var token = CancellationToken.None;

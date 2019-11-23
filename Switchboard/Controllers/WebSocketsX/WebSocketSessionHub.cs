@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
+using Switchboard.Services.FaceRecognition;
 
 namespace Switchboard.Controllers.WebSocketsX
 {
@@ -15,17 +16,20 @@ namespace Switchboard.Controllers.WebSocketsX
     {
         private readonly MemoryStreamPool _memoryStreamPool;
 
+        private readonly IFaceRecognitionService _recognitionService;
+
         private readonly IDictionary<Guid, IWebSocketSession> _sessions;
 
-        public WebSocketSessionHub(MemoryStreamPool memoryStreamPool)
+        public WebSocketSessionHub(IFaceRecognitionService recognitionService, MemoryStreamPool memoryStreamPool)
         {
+            _recognitionService = recognitionService;
             _memoryStreamPool = memoryStreamPool;
             _sessions = new ConcurrentDictionary<Guid, IWebSocketSession>();
         }
 
         public async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
-            using var session = new WebSocketSession(_memoryStreamPool);
+            using var session = new WebSocketSession(_recognitionService, _memoryStreamPool);
             _sessions.Add(session.SessionId, session);
             try
             {
@@ -35,6 +39,11 @@ namespace Switchboard.Controllers.WebSocketsX
             {
                 _sessions.Remove(session.SessionId);
             }
+        }
+
+        public async Task BroadcastTaskUpdateAsync(RecognitionTask task, CancellationToken cancellationToken)
+        {
+            foreach (var (_, session ) in _sessions) await session.SendTaskUpdateAsync(task, cancellationToken);
         }
 
         public bool TryGetSession(Guid sessionId, out IWebSocketSession session)

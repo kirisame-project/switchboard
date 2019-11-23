@@ -11,14 +11,18 @@ using Switchboard.Controllers.WebSocketsX.Facilities;
 using Switchboard.Controllers.WebSocketsX.Facilities.Attributes;
 using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
 using Switchboard.Controllers.WebSocketsX.Facilities.Exceptions;
-using Switchboard.Services.Lambda;
+using Switchboard.Services.FaceRecognition;
 
 namespace Switchboard.Controllers.WebSocketsX
 {
     internal class WebSocketSession : WebSocketController, IWebSocketSession
     {
-        public WebSocketSession(MemoryStreamPool memoryStreamPool) : base(memoryStreamPool)
+        private readonly IFaceRecognitionService _recognitionService;
+
+        public WebSocketSession(IFaceRecognitionService recognitionService, MemoryStreamPool memoryStreamPool) : base(
+            memoryStreamPool)
         {
+            _recognitionService = recognitionService;
             SessionId = Guid.NewGuid();
             SessionState = WebSocketSessionState.New;
         }
@@ -27,7 +31,7 @@ namespace Switchboard.Controllers.WebSocketsX
 
         public WebSocketSessionState SessionState { get; private set; }
 
-        public async Task SendTaskUpdateAsync(LambdaTask task, CancellationToken cancellationToken)
+        public async Task SendTaskUpdateAsync(RecognitionTask task, CancellationToken cancellationToken)
         {
             await Socket.SendObjectAsync(new ImageTaskUpdate(task), cancellationToken);
         }
@@ -86,15 +90,20 @@ namespace Switchboard.Controllers.WebSocketsX
         }
 
         [OperationHandler((int) OperationCodes.ImageTaskRequest, typeof(ImageTaskRequest))]
-        private async Task HandleClientRequest(OperationHandlerContext ctx, CancellationToken cancellationToken)
+        private async Task HandleClientImageRequest(OperationHandlerContext ctx, CancellationToken cancellationToken)
         {
-            await Task.FromException(new NotImplementedException());
+            var request = ((ImageTaskRequest) ctx.Message).Payload;
+            var image = await Socket.ReceiveStreamAsync(cancellationToken);
+
+            RecognitionTask task = null;
+            task = _recognitionService.RequestRecognition(image,
+                async () => { await Socket.SendObjectAsync(task, cancellationToken); });
         }
 
         [OperationHandler((int) OperationCodes.ImageTaskUpdated, typeof(ImageTaskUpdate))]
-        private async Task HandleServerOnlyOperation(OperationHandlerContext ctx, CancellationToken cancellationToken)
+        private Task HandleImageUpdate(OperationHandlerContext ctx, CancellationToken cancellationToken)
         {
-            await Task.FromException(new NotImplementedException());
+            return Task.FromException(new WebSocketControllerException(4405, "Server-only Operations"));
         }
     }
 }
