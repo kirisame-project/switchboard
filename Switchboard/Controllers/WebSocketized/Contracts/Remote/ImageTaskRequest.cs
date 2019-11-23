@@ -1,10 +1,12 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Switchboard.Controllers.WebSocketized.Contracts.Remote
 {
     internal class ImageTaskRequest : MessageWithPayload<ImageTaskRequest.Content>
     {
-        public ImageTaskRequest() : base((int) OperationCodes.ImageTaskRequest, null)
+        [Obsolete("For deserialization only")]
+        public ImageTaskRequest() : base(0, null)
         {
         }
 

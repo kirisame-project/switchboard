@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Switchboard.Controllers.ResponseContracts;
+using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
 using Switchboard.Services.Lambda;
 using Switchboard.Services.Upstream;
@@ -14,7 +15,7 @@ namespace Switchboard.Controllers
 {
     [ApiController]
     [Route("api/v1/lambda")]
-    public class HttpApiController : ControllerBase
+    internal class HttpApiController : ControllerBase
     {
         private static readonly MeasurementOptions DetectionTime = new MeasurementOptions
         {
@@ -48,9 +49,9 @@ namespace Switchboard.Controllers
 
         private readonly MeasurementWriterFactory _metrics;
         private readonly IUpstreamService _upstreamService;
-        private readonly IWebSocketRootController _websockets;
+        private readonly IWebSocketSessionHub _websockets;
 
-        public HttpApiController(IUpstreamService upstreamService, IWebSocketRootController websockets,
+        public HttpApiController(IUpstreamService upstreamService, IWebSocketSessionHub websockets,
             MeasurementWriterFactory metrics)
         {
             _upstreamService = upstreamService;
@@ -68,9 +69,11 @@ namespace Switchboard.Controllers
         {
             var startTime = DateTime.Now;
 
-            // test if websocket session exists
-            if (!_websockets.TryGetSession(sessionId, out var session) || !session.SessionActive)
+            if (!_websockets.TryGetSession(sessionId, out var session))
                 return new BadRequestObjectResult(new ErrorResponse(400, "WebSocket session not found"));
+
+            if (session.SessionState != WebSocketSessionState.SessionEstablished)
+                return new BadRequestObjectResult(new ErrorResponse(400, "Invalid WebSocket session state"));
 
             var metrics = _metrics.GetInstance(new Dictionary<string, string>
             {

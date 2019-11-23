@@ -15,8 +15,7 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
 
         public async Task<T> DeserializeAsync<T>(CancellationToken cancellationToken)
         {
-            Obj.Seek(0, SeekOrigin.Begin);
-            return await JsonSerializer.DeserializeAsync<T>(Obj, cancellationToken: cancellationToken);
+            return (T) await DeserializeAsync(typeof(T), cancellationToken);
         }
 
         public async Task<object> DeserializeAsync(Type type, CancellationToken cancellationToken)

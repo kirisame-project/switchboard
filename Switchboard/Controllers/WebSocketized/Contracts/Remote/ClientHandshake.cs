@@ -5,7 +5,8 @@ namespace Switchboard.Controllers.WebSocketized.Contracts.Remote
 {
     internal class ClientHandshake : MessageWithPayload<ClientHandshake.Content>
     {
-        public ClientHandshake() : base((int) OperationCodes.SessionHandshake, null)
+        [Obsolete("For deserialization only")]
+        public ClientHandshake() : base(0, null)
         {
         }
 

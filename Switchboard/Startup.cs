@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
+using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
 using Switchboard.Metrics.Collector;
 using Switchboard.Services.Upstream;
@@ -43,7 +44,7 @@ namespace Switchboard
                     {
                         using var scope = app.ApplicationServices.CreateScope();
                         using var socket = await context.WebSockets.AcceptWebSocketAsync();
-                        var controller = scope.ServiceProvider.GetService<IWebSocketRootController>();
+                        var controller = scope.ServiceProvider.GetRequiredService<IWebSocketSessionHub>();
                         await controller.AcceptAsync(socket, CancellationToken.None);
                     }
                     else
