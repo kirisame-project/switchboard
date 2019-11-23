@@ -5,7 +5,7 @@ using System.IO;
 using System.Threading;
 using Switchboard.Common;
 
-namespace Switchboard.Controllers.WebSocketsNg
+namespace Switchboard.Controllers.WebSocketsX.Facilities.Buffers
 {
     [Component(ComponentLifestyle.Singleton)]
     public class MemoryStreamPool : IObjectOwner<MemoryStream>

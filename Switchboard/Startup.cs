@@ -11,6 +11,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
+using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
 using Switchboard.Metrics.Collector;
 using Switchboard.Services.Upstream;
@@ -37,13 +38,13 @@ namespace Switchboard
             app.UseRouting();
             app.UseEndpoints(endpoints =>
             {
-                endpoints.Map("/api/v1/lambda/socket", async context =>
+                endpoints.Map("/api/v2/websocket", async context =>
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {
                         using var scope = app.ApplicationServices.CreateScope();
                         using var socket = await context.WebSockets.AcceptWebSocketAsync();
-                        var controller = scope.ServiceProvider.GetService<IWebSocketController>();
+                        var controller = scope.ServiceProvider.GetRequiredService<IWebSocketSessionHub>();
                         await controller.AcceptAsync(socket, CancellationToken.None);
                     }
                     else
