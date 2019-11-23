@@ -3,7 +3,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Switchboard.Common;
-using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
 using Switchboard.Services.Lambda;
 using Switchboard.Services.Upstream;
 
@@ -19,9 +18,9 @@ namespace Switchboard.Services.FaceRecognition
             _upstreamService = upstreamService;
         }
 
-        public RecognitionTask RequestRecognition(ObjectHolder<MemoryStream> imageStream, Func<Task> onUpdate)
+        public RecognitionTask RequestRecognition(Stream imageStream, Func<Task> onUpdate)
         {
-            var task = new RecognitionTask(imageStream.Obj);
+            var task = new RecognitionTask(imageStream);
 
             Task.Run(async () =>
             {

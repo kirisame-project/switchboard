@@ -1,26 +1,24 @@
 ﻿using System;
-using System.Buffers;
 using System.IO;
 using System.Net.WebSockets;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
+using Microsoft.IO;
 
 namespace Switchboard.Controllers.WebSocketsX.Facilities
 {
     internal class WebSocketShim : IDisposable
     {
-        private const int ChunkBufferSize = 1024 * 64; // 1KB * 64
+        private const int ChunkBufferSize = 1024 * 4; // 1KB * 4
+        private readonly RecyclableMemoryStreamManager _memoryStreamManager;
 
         private readonly WebSocket _socket;
 
-        private readonly MemoryStreamPool _streamPool;
-
-        public WebSocketShim(WebSocket socket, MemoryStreamPool streamPool)
+        public WebSocketShim(WebSocket socket, RecyclableMemoryStreamManager memoryStreamManager)
         {
             _socket = socket;
-            _streamPool = streamPool;
+            _memoryStreamManager = memoryStreamManager;
         }
 
         public void Dispose()
@@ -36,88 +34,57 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
 
         private async Task<MemoryStream> ReceiveMessageAsync(CancellationToken cancellationToken)
         {
-            var stream = _streamPool.Get();
-            var buffer = ArrayPool<byte>.Shared.Rent(ChunkBufferSize);
-            try
+            var stream = _memoryStreamManager.GetStream();
+            var buffer = new byte[ChunkBufferSize];
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (!cancellationToken.IsCancellationRequested)
+                var result = await _socket.ReceiveAsync(buffer, cancellationToken);
+                await stream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, result.Count), cancellationToken);
+
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    var result = await _socket.ReceiveAsync(buffer, cancellationToken);
-                    await stream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, result.Count), cancellationToken);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
-                            "Closure requested by the client", cancellationToken);
-                        throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely);
-                    }
-
-                    if (result.EndOfMessage)
-                        return stream;
+                    await _socket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure,
+                        "Closure requested by the client", cancellationToken);
+                    throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely);
                 }
 
-                throw new OperationCanceledException(cancellationToken);
+                if (result.EndOfMessage)
+                    return stream;
             }
-            catch
-            {
-                _streamPool.Return(stream);
-                throw;
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(buffer);
-            }
+
+            throw new OperationCanceledException(cancellationToken);
         }
 
-        public async Task<ObjectHolder<MemoryStream>> ReceiveStreamAsync(CancellationToken cancellationToken)
+        public async Task<MemoryStream> ReceiveStreamAsync(CancellationToken cancellationToken)
         {
-            return new ObjectHolder<MemoryStream>(await ReceiveMessageAsync(cancellationToken), _streamPool);
+            return await ReceiveMessageAsync(cancellationToken);
         }
 
         public async Task<T> ReceiveObjectAsync<T>(CancellationToken cancellationToken)
         {
             await using var stream = await ReceiveMessageAsync(cancellationToken);
-            try
-            {
-                stream.Seek(0, SeekOrigin.Begin);
-                return await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken);
-            }
-            finally
-            {
-                _streamPool.Return(stream);
-            }
-        }
-
-        public async Task<DeserializationContext> ReceiveObjectAsync(CancellationToken cancellationToken)
-        {
-            return new DeserializationContext(await ReceiveMessageAsync(cancellationToken), _streamPool);
+            stream.Seek(0, SeekOrigin.Begin);
+            return await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: cancellationToken);
         }
 
         public async Task SendObjectAsync<T>(T obj, CancellationToken cancellationToken)
         {
-            var stream = _streamPool.Get();
-            try
+            await using var stream = _memoryStreamManager.GetStream();
+            await JsonSerializer.SerializeAsync(stream, obj, cancellationToken: cancellationToken);
+
+            var buffer = new byte[ChunkBufferSize];
+
+            stream.Seek(0, SeekOrigin.Begin);
+            while (stream.Length - stream.Position > ChunkBufferSize)
             {
-                await JsonSerializer.SerializeAsync(stream, obj, cancellationToken: cancellationToken);
-                stream.SetLength(stream.Position);
-
-                var buffer = new byte[ChunkBufferSize];
-
-                stream.Seek(0, SeekOrigin.Begin);
-                while (stream.Length - stream.Position > ChunkBufferSize)
-                {
-                    await stream.ReadAsync(buffer, 0, ChunkBufferSize, cancellationToken);
-                    await _socket.SendAsync(buffer, WebSocketMessageType.Text, false, cancellationToken);
-                }
-
-                var count = await stream.ReadAsync(buffer, 0, ChunkBufferSize, cancellationToken);
-                var segment = new ArraySegment<byte>(buffer, 0, count);
-                await _socket.SendAsync(segment, WebSocketMessageType.Text, true, cancellationToken);
+                await stream.ReadAsync(buffer, 0, ChunkBufferSize, cancellationToken);
+                await _socket.SendAsync(buffer, WebSocketMessageType.Text, false, cancellationToken);
             }
-            finally
-            {
-                _streamPool.Return(stream);
-            }
+
+            var count = await stream.ReadAsync(buffer, 0, ChunkBufferSize, cancellationToken);
+            var segment = new ArraySegment<byte>(buffer, 0, count);
+            await _socket.SendAsync(segment, WebSocketMessageType.Text, true, cancellationToken);
         }
     }
 }

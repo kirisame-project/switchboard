@@ -2,17 +2,18 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.IO;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Controllers.WebSocketized.Contracts;
 using Switchboard.Controllers.WebSocketized.Contracts.Common;
 using Switchboard.Controllers.WebSocketsX.Facilities.Attributes;
-using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
 using Switchboard.Controllers.WebSocketsX.Facilities.Exceptions;
 
 namespace Switchboard.Controllers.WebSocketsX.Facilities
@@ -21,7 +22,7 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
     {
         private static readonly IDictionary<Type, IList<(MethodInfo, OperationHandlerAttribute)>> HandlerCache;
 
-        private readonly MemoryStreamPool _memoryStreamPool;
+        private readonly RecyclableMemoryStreamManager _memoryStreamManager;
 
         private readonly IDictionary<int, (OperationHandler, OperationHandlerAttribute)> _operationHandlers;
 
@@ -32,9 +33,9 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
             HandlerCache = new ConcurrentDictionary<Type, IList<(MethodInfo, OperationHandlerAttribute)>>();
         }
 
-        protected WebSocketController(MemoryStreamPool memoryStreamPool)
+        protected WebSocketController(RecyclableMemoryStreamManager memoryStreamManager)
         {
-            _memoryStreamPool = memoryStreamPool;
+            _memoryStreamManager = memoryStreamManager;
             _operationHandlers = new ConcurrentDictionary<int, (OperationHandler, OperationHandlerAttribute)>(
                 GetOperationHandlers()
             );
@@ -52,7 +53,7 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
 
         public virtual async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
-            Socket = new WebSocketShim(socket, _memoryStreamPool);
+            Socket = new WebSocketShim(socket, _memoryStreamManager);
             await RunAsync(cancellationToken);
 
             // TODO: exception handling
@@ -64,13 +65,15 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    var ctx = await Socket.ReceiveObjectAsync(cancellationToken);
+                    var stream = await Socket.ReceiveStreamAsync(cancellationToken);
                     Message message;
 
                     // deserialize base message for operation code
                     try
                     {
-                        message = await ctx.DeserializeAsync<Message>(cancellationToken);
+                        stream.Seek(0, SeekOrigin.Begin);
+                        message = await JsonSerializer.DeserializeAsync<Message>(stream,
+                            cancellationToken: cancellationToken);
                     }
                     catch (JsonException)
                     {
@@ -85,7 +88,9 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities
                     // deserialize for passing to handlers
                     try
                     {
-                        message = (Message) await ctx.DeserializeAsync(attribute.MessageType, cancellationToken);
+                        stream.Seek(0, SeekOrigin.Begin);
+                        message = (Message) await JsonSerializer.DeserializeAsync(stream, attribute.MessageType,
+                            cancellationToken: cancellationToken);
                     }
                     catch (JsonException)
                     {

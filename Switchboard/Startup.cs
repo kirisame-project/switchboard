@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IO;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
 using Switchboard.Controllers.WebSocketized.Abstractions;
@@ -61,6 +62,8 @@ namespace Switchboard
             services.AddControllers();
             services.AddLogging(builder => builder.AddConsole());
             services.AddMvc();
+
+            services.AddSingleton(new RecyclableMemoryStreamManager());
 
             ConfigureMetrics(_configuration, services);
             RegisterComponents(services);

@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.IO;
 using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized.Abstractions;
-using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
 using Switchboard.Services.FaceRecognition;
 
 namespace Switchboard.Controllers.WebSocketsX
@@ -14,22 +14,22 @@ namespace Switchboard.Controllers.WebSocketsX
     [Component(ComponentLifestyle.Singleton, Implements = typeof(IWebSocketSessionHub))]
     internal class WebSocketSessionHub : IWebSocketSessionHub
     {
-        private readonly MemoryStreamPool _memoryStreamPool;
-
+        private readonly RecyclableMemoryStreamManager _memoryStreamManager;
         private readonly IFaceRecognitionService _recognitionService;
 
         private readonly IDictionary<Guid, IWebSocketSession> _sessions;
 
-        public WebSocketSessionHub(IFaceRecognitionService recognitionService, MemoryStreamPool memoryStreamPool)
+        public WebSocketSessionHub(IFaceRecognitionService recognitionService,
+            RecyclableMemoryStreamManager memoryStreamManager)
         {
             _recognitionService = recognitionService;
-            _memoryStreamPool = memoryStreamPool;
+            _memoryStreamManager = memoryStreamManager;
             _sessions = new ConcurrentDictionary<Guid, IWebSocketSession>();
         }
 
         public async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
-            using var session = new WebSocketSession(_recognitionService, _memoryStreamPool);
+            using var session = new WebSocketSession(_recognitionService, _memoryStreamManager);
             _sessions.Add(session.SessionId, session);
             try
             {

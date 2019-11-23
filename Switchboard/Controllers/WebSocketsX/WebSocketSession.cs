@@ -2,6 +2,7 @@
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.IO;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Controllers.WebSocketized.Contracts;
 using Switchboard.Controllers.WebSocketized.Contracts.Common;
@@ -9,7 +10,6 @@ using Switchboard.Controllers.WebSocketized.Contracts.Local;
 using Switchboard.Controllers.WebSocketized.Contracts.Remote;
 using Switchboard.Controllers.WebSocketsX.Facilities;
 using Switchboard.Controllers.WebSocketsX.Facilities.Attributes;
-using Switchboard.Controllers.WebSocketsX.Facilities.Buffers;
 using Switchboard.Controllers.WebSocketsX.Facilities.Exceptions;
 using Switchboard.Services.FaceRecognition;
 
@@ -19,8 +19,8 @@ namespace Switchboard.Controllers.WebSocketsX
     {
         private readonly IFaceRecognitionService _recognitionService;
 
-        public WebSocketSession(IFaceRecognitionService recognitionService, MemoryStreamPool memoryStreamPool) : base(
-            memoryStreamPool)
+        public WebSocketSession(IFaceRecognitionService recognitionService,
+            RecyclableMemoryStreamManager memoryStreamManager) : base(memoryStreamManager)
         {
             _recognitionService = recognitionService;
             SessionId = Guid.NewGuid();
@@ -96,8 +96,11 @@ namespace Switchboard.Controllers.WebSocketsX
             var image = await Socket.ReceiveStreamAsync(cancellationToken);
 
             RecognitionTask task = null;
-            task = _recognitionService.RequestRecognition(image,
-                async () => { await Socket.SendObjectAsync(task, cancellationToken); });
+            task = _recognitionService.RequestRecognition(image, async () =>
+            {
+                await image.DisposeAsync();
+                await Socket.SendObjectAsync(task, cancellationToken);
+            });
         }
 
         [OperationHandler((int) OperationCodes.ImageTaskUpdated, typeof(ImageTaskUpdate))]
