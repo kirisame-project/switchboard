@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Switchboard.Services.Upstream.RemoteContracts
 {
-    public class FaceSearchResponse
+    internal class FaceSearchResponse
     {
         [JsonPropertyName("code")] public int Code { get; set; }
 

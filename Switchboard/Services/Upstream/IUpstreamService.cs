@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Switchboard.Services.Upstream
 {
-    public interface IUpstreamService
+    internal interface IUpstreamService
     {
         [Obsolete("This method is obsolete. Use FindFacesV2 instead.")]
         Task<FacePosition> FindFace(Stream image, CancellationToken cancellationToken);

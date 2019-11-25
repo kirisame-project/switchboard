@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Switchboard.Services.Upstream
 {
-    public class CopyStreamContent : HttpContent
+    internal class CopyStreamContent : HttpContent
     {
         private readonly Stream _stream;
 

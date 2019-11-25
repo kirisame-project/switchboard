@@ -4,7 +4,7 @@ using Switchboard.Metrics.Collector;
 
 namespace Switchboard.Metrics
 {
-    public class MeasurementWriter
+    internal class MeasurementWriter
     {
         private readonly IMetricsCollector _collector;
         private readonly IReadOnlyDictionary<string, string> _predefinedTags;

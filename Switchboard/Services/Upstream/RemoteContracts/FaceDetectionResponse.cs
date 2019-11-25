@@ -2,7 +2,7 @@
 
 namespace Switchboard.Services.Upstream.RemoteContracts
 {
-    public class FaceDetectionResponse
+    internal class FaceDetectionResponse
     {
         [JsonPropertyName("code")] public string Code { get; set; }
 

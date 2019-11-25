@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Switchboard.Services.Upstream
 {
-    public static class HttpClientExtensions
+    internal static class HttpClientExtensions
     {
         private static async Task<Stream> PostAsync(this HttpClient client, HttpContent content, string url,
             CancellationToken cancellationToken)

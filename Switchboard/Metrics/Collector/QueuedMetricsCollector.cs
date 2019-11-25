@@ -8,7 +8,7 @@ using InfluxDB.LineProtocol.Payload;
 
 namespace Switchboard.Metrics.Collector
 {
-    public class QueuedMetricsCollector : IMetricsCollector
+    internal class QueuedMetricsCollector : IMetricsCollector
     {
         private readonly LineProtocolClient _client;
 

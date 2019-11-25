@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Switchboard.Metrics.Collector
 {
-    public class HostedQueueTimer : IHostedService, IDisposable
+    internal class HostedQueueTimer : IHostedService, IDisposable
     {
         private readonly QueuedMetricsCollector _collector;
 

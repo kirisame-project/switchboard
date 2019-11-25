@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Switchboard.Controllers.WebSocketized.Contracts
 {
-    public class MessageWithPayload<T> : Message
+    internal class MessageWithPayload<T> : Message
     {
         [Obsolete("For deserialization only")]
         public MessageWithPayload() : base(0)

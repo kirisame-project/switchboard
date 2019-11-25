@@ -2,7 +2,7 @@
 
 namespace Switchboard.Controllers.WebSocketized.Contracts.Common
 {
-    public class CloseSession : Message
+    internal class CloseSession : Message
     {
         public CloseSession(int code, string reason) : base((int) OperationCodes.Close)
         {

@@ -1,6 +1,6 @@
 ﻿namespace Switchboard.Metrics
 {
-    public class InfluxDbConfiguration
+    internal class InfluxDbConfiguration
     {
         public string BaseUri { get; set; }
 

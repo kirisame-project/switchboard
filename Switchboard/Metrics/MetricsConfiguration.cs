@@ -1,6 +1,6 @@
 ﻿namespace Switchboard.Metrics
 {
-    public class MetricsConfiguration
+    internal class MetricsConfiguration
     {
         public int FlushInterval { get; set; }
 

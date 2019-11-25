@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Switchboard.Services.Upstream.RemoteContracts
 {
-    public class FaceSearchRequest
+    internal class FaceSearchRequest
     {
         [JsonPropertyName("count")] public int Count { get; set; }
 

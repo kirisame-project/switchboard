@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace Switchboard.Services.FaceRecognition.Abstractions
 {
     [JsonConverter(typeof(JsonStringEnumConverter))]
-    public enum BaseTaskState
+    internal enum BaseTaskState
     {
         [EnumMember(Value = "pending")] Pending,
         [EnumMember(Value = "running")] Running,

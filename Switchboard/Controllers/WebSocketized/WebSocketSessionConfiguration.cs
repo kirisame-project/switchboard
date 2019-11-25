@@ -1,6 +1,6 @@
 ﻿namespace Switchboard.Controllers.WebSocketized
 {
-    public class WebSocketSessionConfiguration
+    internal class WebSocketSessionConfiguration
     {
         public int HeartbeatInterval { get; set; }
     }

@@ -11,7 +11,7 @@ namespace Switchboard.Services.Upstream
 {
     [Component(ComponentLifestyle.Singleton, Implements = typeof(IUpstreamService))]
     [DependsSingleton(typeof(HttpClient))]
-    public class HttpUpstreamService : IUpstreamService
+    internal class HttpUpstreamService : IUpstreamService
     {
         private readonly HttpClient _client;
         private readonly UpstreamServiceConfiguration _config;

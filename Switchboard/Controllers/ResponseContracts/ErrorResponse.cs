@@ -2,7 +2,7 @@
 
 namespace Switchboard.Controllers.ResponseContracts
 {
-    public class ErrorResponse
+    internal class ErrorResponse
     {
         public ErrorResponse(int code, string reason)
         {

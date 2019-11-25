@@ -1,6 +1,6 @@
 ﻿namespace Switchboard.Metrics
 {
-    public class MeasurementOptions
+    internal class MeasurementOptions
     {
         public string DefaultFieldName { get; set; } = "value";
 

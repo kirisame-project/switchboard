@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Switchboard.Services.Upstream
 {
-    public class JsonObjectContent<T> : HttpContent
+    internal class JsonObjectContent<T> : HttpContent
     {
         private readonly T _obj;
 

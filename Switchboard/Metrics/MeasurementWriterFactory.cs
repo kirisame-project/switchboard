@@ -3,7 +3,7 @@ using Switchboard.Metrics.Collector;
 
 namespace Switchboard.Metrics
 {
-    public class MeasurementWriterFactory
+    internal class MeasurementWriterFactory
     {
         private readonly IMetricsCollector _collector;
 

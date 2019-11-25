@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Switchboard.Services.FaceRecognition
 {
-    public class RecognizedFace
+    internal class RecognizedFace
     {
         [JsonPropertyName("_id")] public Guid Id { get; set; }
 

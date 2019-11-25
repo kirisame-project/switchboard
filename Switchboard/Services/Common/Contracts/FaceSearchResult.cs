@@ -5,7 +5,7 @@ namespace Switchboard.Services
     /// <summary>
     ///     Represents a matching face with the label "Label" and the similarity "Distance"
     /// </summary>
-    public class FaceSearchResult
+    internal class FaceSearchResult
     {
         [JsonPropertyName("distance")] public double Distance { get; set; }
 

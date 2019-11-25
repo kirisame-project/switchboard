@@ -19,7 +19,7 @@ using Switchboard.Services.Upstream;
 
 namespace Switchboard
 {
-    public class Startup
+    internal class Startup
     {
         private readonly IConfiguration _configuration;
 

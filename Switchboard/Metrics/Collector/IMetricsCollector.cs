@@ -2,7 +2,7 @@
 
 namespace Switchboard.Metrics.Collector
 {
-    public interface IMetricsCollector
+    internal interface IMetricsCollector
     {
         void Write(string measurement, IReadOnlyDictionary<string, object> fields);
 
