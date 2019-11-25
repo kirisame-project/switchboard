@@ -107,7 +107,7 @@ namespace Switchboard.Controllers.WebSocketsX
             }
 
             task.DetectionTask.OnStateChanged += Callback;
-            task.SearchTask.OnStateChanged += Callback;
+            task.OnStateChanged += Callback;
 
             var _ = _taskRunner.RunTaskAsync(task, cancellationToken);
         }
