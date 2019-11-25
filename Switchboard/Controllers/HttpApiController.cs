@@ -9,8 +9,7 @@ using Switchboard.Controllers.ResponseContracts;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
 using Switchboard.Services.FaceRecognition;
-using Switchboard.Services.Lambda;
-using Switchboard.Services.Upstream;
+using Switchboard.Services.FaceRecognition.Abstractions;
 
 namespace Switchboard.Controllers
 {
@@ -49,13 +48,16 @@ namespace Switchboard.Controllers
         };
 
         private readonly MeasurementWriterFactory _metrics;
-        private readonly IUpstreamService _upstreamService;
+
+
+        private readonly IRecognitionTaskRunner _taskRunner;
+
         private readonly IWebSocketSessionHub _websockets;
 
-        public HttpApiController(IUpstreamService upstreamService, IWebSocketSessionHub websockets,
+        public HttpApiController(IRecognitionTaskRunner taskRunner, IWebSocketSessionHub websockets,
             MeasurementWriterFactory metrics)
         {
-            _upstreamService = upstreamService;
+            _taskRunner = taskRunner;
             _websockets = websockets;
             _metrics = metrics;
         }
@@ -63,7 +65,7 @@ namespace Switchboard.Controllers
         [Consumes("image/jpeg")]
         [HttpPost]
         [ProducesErrorResponseType(typeof(ErrorResponse))]
-        [ProducesResponseType(typeof(LambdaTask), StatusCodes.Status202Accepted)]
+        [ProducesResponseType(typeof(RecognitionTask), StatusCodes.Status202Accepted)]
         [Route("")]
         public async Task<IActionResult> DoStandardRequest([FromHeader(Name = "X-WebSocket-Session-Id")]
             Guid sessionId)
@@ -89,29 +91,34 @@ namespace Switchboard.Controllers
 
             // create task
             var task = new RecognitionTask(image);
+            var cancellationToken = CancellationToken.None;
 
-            // start detection task
-            var token = CancellationToken.None;
-            await task.RunDetection(_upstreamService, token);
-            metrics.Write(DetectionTime, task.DetectionSubTask.Time);
-            metrics.Write(FaceCount, task.FaceCount);
+            // subscribe detection task
+            var detectionTask = new TaskCompletionSource<bool>();
+            task.DetectionTask.OnStateChanged += (sender, arg) => detectionTask.SetResult(true);
 
-            // defer vectoring and search
-            if (task.FaceCount > 0)
+            // subscribe entire task
+            task.OnStateChanged += (sender, arg) =>
             {
-                var _ = Task.Run(async () =>
-                {
-                    await task.RunVectoring(_upstreamService, token);
-                    await task.RunSearch(_upstreamService, token);
-                    task.Time = (int) (DateTime.Now - task.CreationTime).TotalMilliseconds;
-                    await session.SendTaskUpdateAsync(task, token);
+                if (task.State != BaseTaskState.Succeeded && task.State != BaseTaskState.Failed) return;
 
-                    metrics.Write(VectorTime, task.VectorSubTask.Time);
-                    metrics.Write(SearchTime, task.SearchSubTask.Time);
-                    metrics.Write(Stage2ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
-                }, token);
-            }
+                session.SendTaskUpdateAsync(task, cancellationToken);
 
+                metrics.Write(VectorTime, task.VectorizationTask.Time);
+                metrics.Write(SearchTime, task.SearchTask.Time);
+
+                metrics.Write(Stage2ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
+            };
+
+            // start entire task
+            var _ = _taskRunner.RunTaskAsync(task, cancellationToken);
+
+            // await detection task
+            await detectionTask.Task;
+            metrics.Write(FaceCount, task.FaceCount);
+            metrics.Write(DetectionTime, task.DetectionTask.Time);
+
+            // return
             metrics.Write(Stage1ResponseTime, (int) (DateTime.Now - startTime).TotalMilliseconds);
             return new OkObjectResult(task);
         }
@@ -129,12 +136,8 @@ namespace Switchboard.Controllers
             var image = new MemoryStream();
             await Request.Body.CopyToAsync(image);
 
-            var task = new LambdaTask(image);
-
-            var token = CancellationToken.None; // TODO: use upstream timeout
-            await task.RunDetection(_upstreamService, token);
-            await task.RunVectoring(_upstreamService, token);
-            await task.RunSearch(_upstreamService, token);
+            var task = new RecognitionTask(image);
+            await _taskRunner.RunTaskAsync(task, CancellationToken.None);
 
             return new OkObjectResult(task);
         }

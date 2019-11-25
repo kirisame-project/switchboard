@@ -12,17 +12,18 @@ using Switchboard.Controllers.WebSocketsX.Facilities;
 using Switchboard.Controllers.WebSocketsX.Facilities.Attributes;
 using Switchboard.Controllers.WebSocketsX.Facilities.Exceptions;
 using Switchboard.Services.FaceRecognition;
+using Switchboard.Services.FaceRecognition.Abstractions;
 
 namespace Switchboard.Controllers.WebSocketsX
 {
     internal class WebSocketSession : WebSocketController, IWebSocketSession
     {
-        private readonly IFaceRecognitionService _recognitionService;
+        private readonly IRecognitionTaskRunner _taskRunner;
 
-        public WebSocketSession(IFaceRecognitionService recognitionService,
-            RecyclableMemoryStreamManager memoryStreamManager) : base(memoryStreamManager)
+        public WebSocketSession(IRecognitionTaskRunner taskRunner, RecyclableMemoryStreamManager memoryStreamManager) :
+            base(memoryStreamManager)
         {
-            _recognitionService = recognitionService;
+            _taskRunner = taskRunner;
             SessionId = Guid.NewGuid();
             SessionState = WebSocketSessionState.New;
         }
@@ -95,12 +96,20 @@ namespace Switchboard.Controllers.WebSocketsX
             var request = ((ImageTaskRequest) ctx.Message).Payload;
             var image = await Socket.ReceiveStreamAsync(cancellationToken);
 
-            RecognitionTask task = null;
-            task = _recognitionService.RequestRecognition(image, async () =>
+            var task = new RecognitionTask(image);
+
+            void Callback(object sender, BaseTaskState arg)
             {
-                await image.DisposeAsync();
-                await Socket.SendObjectAsync(task, cancellationToken);
-            });
+                if (!((BaseTask) sender).IsCompleted)
+                    return;
+
+                var _ = SendTaskUpdateAsync(task, cancellationToken);
+            }
+
+            task.DetectionTask.OnStateChanged += Callback;
+            task.SearchTask.OnStateChanged += Callback;
+
+            var _ = _taskRunner.RunTaskAsync(task, cancellationToken);
         }
 
         [OperationHandler((int) OperationCodes.ImageTaskUpdated, typeof(ImageTaskUpdate))]

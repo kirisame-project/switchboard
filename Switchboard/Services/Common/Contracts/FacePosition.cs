@@ -2,7 +2,7 @@
 
 namespace Switchboard.Services
 {
-    public class FacePosition
+    public struct FacePosition
     {
         [JsonPropertyName("x1")] public int X1 { get; set; }
 

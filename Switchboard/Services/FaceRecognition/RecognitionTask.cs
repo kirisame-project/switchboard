@@ -1,17 +1,52 @@
 ﻿using System;
 using System.IO;
-using Switchboard.Services.Lambda;
+using System.Text.Json.Serialization;
+using SixLabors.ImageSharp;
+using Switchboard.Services.FaceRecognition.Abstractions;
 
 namespace Switchboard.Services.FaceRecognition
 {
-    public class RecognitionTask : LambdaTask
+    internal class RecognitionTask : BaseTask, IDisposable
     {
-        public RecognitionTask(Stream image) : base(image)
+        private Image _image;
+
+        public RecognitionTask(Stream image)
         {
+            ImageStream = image;
+
+            DetectionTask = new BaseTask();
+            VectorizationTask = new BaseTask();
+            SearchTask = new BaseTask();
         }
 
-        public event EventHandler OnDetectionCompleted;
+        [JsonPropertyName("faces")] public RecognizedFace[] Faces { get; set; }
 
-        public event EventHandler OnSearchCompleted;
+        [JsonPropertyName("faceCount")] public int FaceCount => Faces.Length;
+
+        [JsonPropertyName("detection")] public BaseTask DetectionTask { get; }
+
+        [JsonPropertyName("vector")] public BaseTask VectorizationTask { get; }
+
+        [JsonPropertyName("search")] public BaseTask SearchTask { get; }
+
+        [JsonIgnore] public Image ImageInstance => OpenImage();
+
+        [JsonIgnore] public Stream ImageStream { get; }
+
+        public void Dispose()
+        {
+            ImageInstance?.Dispose();
+            ImageStream?.Dispose();
+        }
+
+        private Image OpenImage()
+        {
+            if (_image != null)
+                return _image;
+
+            ImageStream.Seek(0, SeekOrigin.Begin);
+            _image = Image.Load(ImageStream);
+            return _image;
+        }
     }
 }

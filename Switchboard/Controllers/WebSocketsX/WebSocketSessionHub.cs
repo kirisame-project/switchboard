@@ -15,21 +15,20 @@ namespace Switchboard.Controllers.WebSocketsX
     internal class WebSocketSessionHub : IWebSocketSessionHub
     {
         private readonly RecyclableMemoryStreamManager _memoryStreamManager;
-        private readonly IFaceRecognitionService _recognitionService;
 
         private readonly IDictionary<Guid, IWebSocketSession> _sessions;
+        private readonly IRecognitionTaskRunner _taskRunner;
 
-        public WebSocketSessionHub(IFaceRecognitionService recognitionService,
-            RecyclableMemoryStreamManager memoryStreamManager)
+        public WebSocketSessionHub(IRecognitionTaskRunner taskRunner, RecyclableMemoryStreamManager memoryStreamManager)
         {
-            _recognitionService = recognitionService;
+            _taskRunner = taskRunner;
             _memoryStreamManager = memoryStreamManager;
             _sessions = new ConcurrentDictionary<Guid, IWebSocketSession>();
         }
 
         public async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
-            using var session = new WebSocketSession(_recognitionService, _memoryStreamManager);
+            using var session = new WebSocketSession(_taskRunner, _memoryStreamManager);
             _sessions.Add(session.SessionId, session);
             try
             {
