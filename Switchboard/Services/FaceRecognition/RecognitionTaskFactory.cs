@@ -10,7 +10,7 @@ namespace Switchboard.Services.FaceRecognition
     internal class RecognitionTaskFactory
     {
         private readonly ILogger _logger;
-        public EventHandler<BaseTaskState> OnStateChanged;
+        public event EventHandler<BaseTaskState> OnStateChanged;
 
         public RecognitionTaskFactory(ILoggerFactory loggerFactory)
         {
