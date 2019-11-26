@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 
-namespace Switchboard.Services.FaceRecognition
+namespace Switchboard.Services.Common.Contracts
 {
     internal class RecognizedFace
     {

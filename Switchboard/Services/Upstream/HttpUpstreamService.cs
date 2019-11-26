@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Switchboard.Common;
+using Switchboard.Services.Common.Contracts;
 using Switchboard.Services.Upstream.RemoteContracts;
 
 namespace Switchboard.Services.Upstream

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Switchboard.Services
+namespace Switchboard.Services.Common.Contracts
 {
     /// <summary>
     ///     Represents a matching face with the label "Label" and the similarity "Distance"

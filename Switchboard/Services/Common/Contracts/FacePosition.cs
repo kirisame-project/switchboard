@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Switchboard.Services
+namespace Switchboard.Services.Common.Contracts
 {
     internal class FacePosition
     {

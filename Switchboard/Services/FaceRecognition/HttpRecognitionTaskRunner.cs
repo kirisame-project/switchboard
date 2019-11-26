@@ -8,6 +8,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
 using Switchboard.Common;
+using Switchboard.Services.Common.Contracts;
 using Switchboard.Services.FaceRecognition.Abstractions;
 using Switchboard.Services.Upstream;
 

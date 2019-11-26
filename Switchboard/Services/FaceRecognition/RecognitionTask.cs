@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.Json.Serialization;
 using SixLabors.ImageSharp;
+using Switchboard.Services.Common.Contracts;
 using Switchboard.Services.FaceRecognition.Abstractions;
 
 namespace Switchboard.Services.FaceRecognition
