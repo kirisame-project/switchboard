@@ -49,15 +49,17 @@ namespace Switchboard.Controllers
 
         private readonly MeasurementWriterFactory _metrics;
 
+        private readonly RecognitionTaskFactory _taskFactory;
 
         private readonly IRecognitionTaskRunner _taskRunner;
 
         private readonly IWebSocketSessionHub _websockets;
 
-        public HttpApiController(IRecognitionTaskRunner taskRunner, IWebSocketSessionHub websockets,
-            MeasurementWriterFactory metrics)
+        public HttpApiController(IRecognitionTaskRunner taskRunner, RecognitionTaskFactory taskFactory,
+            IWebSocketSessionHub websockets, MeasurementWriterFactory metrics)
         {
             _taskRunner = taskRunner;
+            _taskFactory = taskFactory;
             _websockets = websockets;
             _metrics = metrics;
         }
@@ -90,7 +92,7 @@ namespace Switchboard.Controllers
             await Request.Body.CopyToAsync(image);
 
             // create task
-            var task = new RecognitionTask(image);
+            var task = _taskFactory.Create(image);
             var cancellationToken = CancellationToken.None;
 
             // subscribe detection task
@@ -136,7 +138,7 @@ namespace Switchboard.Controllers
             var image = new MemoryStream();
             await Request.Body.CopyToAsync(image);
 
-            var task = new RecognitionTask(image);
+            var task = _taskFactory.Create(image);
             await _taskRunner.RunTaskAsync(task, CancellationToken.None);
 
             return new OkObjectResult(task);

@@ -15,6 +15,7 @@ using Switchboard.Controllers.WebSocketized;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
 using Switchboard.Metrics.Collector;
+using Switchboard.Services.FaceReporting;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard
@@ -55,6 +56,7 @@ namespace Switchboard
                 });
                 endpoints.MapControllers();
             });
+            app.ApplicationServices.GetRequiredService<ReportingConfigurator>();
         }
 
         public void ConfigureServices(IServiceCollection services)
@@ -66,8 +68,17 @@ namespace Switchboard
             services.AddSingleton(new RecyclableMemoryStreamManager());
 
             ConfigureMetrics(_configuration, services);
+            ConfigureReporting(_configuration, services);
             RegisterComponents(services);
             RegisterConfigurations(_configuration, services);
+        }
+
+        private void ConfigureReporting(IConfiguration configuration, IServiceCollection services)
+        {
+            var config = new HttpReportingConfiguration();
+            configuration.GetSection("reporting").Bind(config);
+            services.AddSingleton(config);
+            services.AddSingleton<ReportingConfigurator>();
         }
 
         private static void RegisterConfigurations(IConfiguration config, IServiceCollection services)

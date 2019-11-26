@@ -17,18 +17,23 @@ namespace Switchboard.Controllers.WebSocketsX
         private readonly RecyclableMemoryStreamManager _memoryStreamManager;
 
         private readonly IDictionary<Guid, IWebSocketSession> _sessions;
+
+        private readonly RecognitionTaskFactory _taskFactory;
+
         private readonly IRecognitionTaskRunner _taskRunner;
 
-        public WebSocketSessionHub(IRecognitionTaskRunner taskRunner, RecyclableMemoryStreamManager memoryStreamManager)
+        public WebSocketSessionHub(IRecognitionTaskRunner taskRunner, RecognitionTaskFactory taskFactory,
+            RecyclableMemoryStreamManager memoryStreamManager)
         {
             _taskRunner = taskRunner;
+            _taskFactory = taskFactory;
             _memoryStreamManager = memoryStreamManager;
             _sessions = new ConcurrentDictionary<Guid, IWebSocketSession>();
         }
 
         public async Task AcceptAsync(WebSocket socket, CancellationToken cancellationToken)
         {
-            using var session = new WebSocketSession(_taskRunner, _memoryStreamManager);
+            using var session = new WebSocketSession(_taskRunner, _taskFactory, _memoryStreamManager);
             _sessions.Add(session.SessionId, session);
             try
             {

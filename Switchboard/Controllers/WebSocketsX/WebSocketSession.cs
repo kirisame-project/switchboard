@@ -18,12 +18,14 @@ namespace Switchboard.Controllers.WebSocketsX
 {
     internal class WebSocketSession : WebSocketController, IWebSocketSession
     {
+        private readonly RecognitionTaskFactory _taskFactory;
         private readonly IRecognitionTaskRunner _taskRunner;
 
-        public WebSocketSession(IRecognitionTaskRunner taskRunner, RecyclableMemoryStreamManager memoryStreamManager) :
-            base(memoryStreamManager)
+        public WebSocketSession(IRecognitionTaskRunner taskRunner, RecognitionTaskFactory taskFactory,
+            RecyclableMemoryStreamManager memoryStreamManager) : base(memoryStreamManager)
         {
             _taskRunner = taskRunner;
+            _taskFactory = taskFactory;
             SessionId = Guid.NewGuid();
             SessionState = WebSocketSessionState.New;
         }
@@ -96,7 +98,7 @@ namespace Switchboard.Controllers.WebSocketsX
             var request = ((ImageTaskRequest) ctx.Message).Payload;
             var image = await Socket.ReceiveStreamAsync(cancellationToken);
 
-            var task = new RecognitionTask(image);
+            var task = _taskFactory.Create(image);
 
             void Callback(object sender, BaseTaskState arg)
             {
