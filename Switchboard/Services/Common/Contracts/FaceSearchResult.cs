@@ -9,6 +9,6 @@ namespace Switchboard.Services.Common.Contracts
     {
         [JsonPropertyName("distance")] public double Distance { get; set; }
 
-        [JsonPropertyName("label")] public int Label { get; set; }
+        [JsonPropertyName("label")] public int Label { get; set; } = -1;
     }
 }
