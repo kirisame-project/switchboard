@@ -22,4 +22,4 @@ jobs:
     - name: Push to Docker Hub
       run: |
         docker push kirisameproject/switchboard:${{ github.sha }}
-        docker push kirisameproject/switchboard:nightly
+        docker push kirisameproject/switchboard:${{ github.ref }}-nightly
