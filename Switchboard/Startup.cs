@@ -57,6 +57,7 @@ namespace Switchboard
                 endpoints.MapControllers();
             });
             app.ApplicationServices.GetRequiredService<ReportingConfigurator>();
+            app.ApplicationServices.GetRequiredService<TaskMetricsConfigurator>();
         }
 
         public void ConfigureServices(IServiceCollection services)
