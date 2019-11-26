@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.IO;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -21,10 +22,14 @@ namespace Switchboard.Services.FaceRecognition
 
         private readonly IUpstreamService _upstream;
 
-        public HttpRecognitionTaskRunner(IUpstreamService upstream, RecyclableMemoryStreamManager memoryStreamManager)
+        private readonly ILogger _logger;
+
+        public HttpRecognitionTaskRunner(IUpstreamService upstream, ILoggerFactory loggerFactory,
+            RecyclableMemoryStreamManager memoryStreamManager)
         {
             _upstream = upstream;
             _memoryStreamManager = memoryStreamManager;
+            _logger = loggerFactory.CreateLogger(GetType());
         }
 
         public async Task RunTaskAsync(RecognitionTask task, CancellationToken cancellationToken)
@@ -41,8 +46,14 @@ namespace Switchboard.Services.FaceRecognition
 
                 task.State = BaseTaskState.Succeeded;
             }
-            catch
+            catch (Exception e)
             {
+                if (e is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+                    _logger.LogWarning("Upstream service timed out, or too slow to respond\n" +
+                                       $"Detection.State={task.DetectionTask.State}, Time={task.DetectionTask.Time}\n" +
+                                       $"Vectorization.State={task.VectorizationTask.State}, Time={task.VectorizationTask.Time}\n" +
+                                       $"Search.State={task.SearchTask.State}, Time={task.SearchTask.Time}");
+
                 task.State = BaseTaskState.Failed;
                 throw;
             }

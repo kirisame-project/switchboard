@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -26,7 +27,7 @@ namespace Switchboard.Services.Upstream
         public async Task<FacePosition> FindFace(Stream image, CancellationToken cancellationToken)
         {
             var response = await _client.PostStreamAsync<FaceDetectionResponse>(image, "image/jpeg",
-                _config.Endpoints.Detection, cancellationToken);
+                _config.Endpoints.Detection, CreateTimeoutCancellationToken(cancellationToken));
 
             if (response.Code != "200")
                 throw new HttpRequestException("Response.Code != 200");
@@ -44,7 +45,7 @@ namespace Switchboard.Services.Upstream
         public async Task<FacePosition[]> FindFacesV2(Stream image, CancellationToken cancellationToken)
         {
             var response = await _client.PostStreamAsync<FaceDetectionV2Response>(image, "image/jpeg",
-                _config.Endpoints.DetectionV2, cancellationToken);
+                _config.Endpoints.DetectionV2, CreateTimeoutCancellationToken(cancellationToken));
 
             return response.Boxes.Select(box => new FacePosition
             {
@@ -58,7 +59,7 @@ namespace Switchboard.Services.Upstream
         public async Task<double[]> GetFaceFeatureVector(Stream image, CancellationToken cancellationToken)
         {
             return (await _client.PostStreamAsync<double[][]>(image, "image/jpeg", _config.Endpoints.Recognition,
-                cancellationToken))[0];
+                CreateTimeoutCancellationToken(cancellationToken)))[0];
         }
 
         public async Task<IDictionary<string, FaceSearchResult[]>> SearchFacesByFeatureVectors(
@@ -69,7 +70,7 @@ namespace Switchboard.Services.Upstream
                 Count = vectors.Count,
                 CandidateCount = 3, // TODO: configurable candidate count
                 Vectors = vectors.ToDictionary(pair => pair.Key, pair => pair.Value)
-            }, _config.Endpoints.Search, token);
+            }, _config.Endpoints.Search, CreateTimeoutCancellationToken(token));
 
             if (response.Code != 200)
                 throw new HttpRequestException("Response.Code != 200");
@@ -82,6 +83,16 @@ namespace Switchboard.Services.Upstream
                     Distance = distance, Label = result.TopLabels[index]
                 }).ToArray();
             });
+        }
+
+        private CancellationToken CreateTimeoutCancellationToken(CancellationToken? peerCancellationToken)
+        {
+            var timeoutSource = new CancellationTokenSource(TimeSpan.FromMilliseconds(_config.Timeout));
+            return (peerCancellationToken == null
+                ? timeoutSource
+                : CancellationTokenSource.CreateLinkedTokenSource(
+                    timeoutSource.Token, (CancellationToken) peerCancellationToken
+                )).Token;
         }
     }
 }
