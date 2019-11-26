@@ -9,8 +9,9 @@ namespace Switchboard.Services.Common.Contracts
 
         [JsonPropertyName("position")] public FacePosition Position { get; set; } = new FacePosition();
 
-        [JsonPropertyName("results")] public FaceSearchResult[] SearchResults { get; set; } = { };
+        [JsonPropertyName("vector")] public double[] FeatureVector { get; set; } = Array.Empty<double>();
 
-        [JsonPropertyName("vector")] public double[] FeatureVector { get; set; } = { };
+        [JsonPropertyName("results")]
+        public FaceSearchResult[] SearchResults { get; set; } = Array.Empty<FaceSearchResult>();
     }
 }

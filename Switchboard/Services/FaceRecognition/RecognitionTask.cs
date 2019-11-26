@@ -14,21 +14,17 @@ namespace Switchboard.Services.FaceRecognition
         public RecognitionTask(Stream image)
         {
             ImageStream = image;
-
-            DetectionTask = new BaseTask();
-            VectorizationTask = new BaseTask();
-            SearchTask = new BaseTask();
         }
 
-        [JsonPropertyName("faces")] public RecognizedFace[] Faces { get; set; }
+        [JsonPropertyName("faces")] public RecognizedFace[] Faces { get; set; } = Array.Empty<RecognizedFace>();
 
         [JsonPropertyName("faceCount")] public int FaceCount => Faces.Length;
 
-        [JsonPropertyName("detection")] public BaseTask DetectionTask { get; }
+        [JsonPropertyName("detection")] public BaseTask DetectionTask { get; } = new BaseTask();
 
-        [JsonPropertyName("vector")] public BaseTask VectorizationTask { get; }
+        [JsonPropertyName("vector")] public BaseTask VectorizationTask { get; } = new BaseTask();
 
-        [JsonPropertyName("search")] public BaseTask SearchTask { get; }
+        [JsonPropertyName("search")] public BaseTask SearchTask { get; } = new BaseTask();
 
         [JsonIgnore] public Image ImageInstance => OpenImage();
 
