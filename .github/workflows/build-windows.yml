@@ -13,7 +13,7 @@ jobs:
       with:
         dotnet-version: 3.0.100
     - name: Create config.json
-      run: copy Switchboard\config.example.json Switchboard\config.json
+      run: Copy-Item -Path Switchboard\config.example.json -Destination Switchboard\config.json
     - name: Build
       run: dotnet publish -c Release -o out -r win-x86 --self-contained
     - name: Upload artifact
