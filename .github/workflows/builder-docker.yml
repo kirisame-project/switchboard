@@ -18,8 +18,8 @@ jobs:
     - name: Build
       run: docker build . -t kirisameproject/switchboard:${{ github.sha }}
     - name: Tag nightly
-      run: docker tag kirisameproject/switchboard:${{ github.sha }} kirisameproject/switchboard:${{ github.ref }}-nightly
+      run: docker tag kirisameproject/switchboard:${{ github.sha }} kirisameproject/switchboard:${GITHUB_REF##*/}-nightly
     - name: Push to Docker Hub
       run: |
-        docker push kirisameproject/switchboard:${{ github.sha }}
-        docker push kirisameproject/switchboard:${{ github.ref }}-nightly
+        docker push kirisameproject/switchboard:${GITHUB_REF##*/}
+        docker push kirisameproject/switchboard:${GITHUB_REF##*/}-nightly
