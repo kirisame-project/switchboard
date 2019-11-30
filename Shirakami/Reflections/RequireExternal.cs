@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace Switchboard.Common
+namespace AtomicAkarin.Shirakami.Reflections
 {
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-    public class DependsSingletonAttribute : Attribute
+    public class RequireExternal : Attribute
     {
-        public DependsSingletonAttribute(Type type)
+        public RequireExternal(Type type)
         {
             Type = type;
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using AtomicAkarin.Shirakami.Reflections;
 using InfluxDB.LineProtocol.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -10,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IO;
-using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
@@ -119,19 +119,19 @@ namespace Switchboard
 
         private static void AddComponent(Type type, ComponentAttribute attribute, IServiceCollection services)
         {
-            var singletons = type.GetCustomAttributes<DependsSingletonAttribute>();
+            var singletons = type.GetCustomAttributes<RequireExternal>();
             foreach (var dependency in singletons)
                 services.AddSingleton(dependency.Type);
 
             var serviceType = attribute.Implements ?? type;
 
-            switch (attribute.Lifestyle)
+            switch (attribute.Lifetime)
             {
-                case ComponentLifestyle.Singleton:
+                case ServiceLifetime.Singleton:
                     services.AddSingleton(serviceType, type);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(attribute.Lifestyle), attribute.Lifestyle, null);
+                    throw new ArgumentOutOfRangeException(nameof(attribute.Lifetime), attribute.Lifetime, null);
             }
         }
 

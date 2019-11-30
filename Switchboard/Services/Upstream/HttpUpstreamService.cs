@@ -5,14 +5,15 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Switchboard.Common;
+using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 using Switchboard.Services.Common.Contracts;
 using Switchboard.Services.Upstream.RemoteContracts;
 
 namespace Switchboard.Services.Upstream
 {
-    [Component(ComponentLifestyle.Singleton, Implements = typeof(IUpstreamService))]
-    [DependsSingleton(typeof(HttpClient))]
+    [Component(ServiceLifetime.Singleton, Implements = typeof(IUpstreamService))]
+    [RequireExternal(typeof(HttpClient))]
     internal class HttpUpstreamService : IUpstreamService
     {
         private readonly HttpClient _client;
