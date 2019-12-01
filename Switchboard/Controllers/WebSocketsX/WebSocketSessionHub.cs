@@ -12,7 +12,7 @@ using Switchboard.Services.FaceRecognition;
 
 namespace Switchboard.Controllers.WebSocketsX
 {
-    [Component(ServiceLifetime.Singleton, Implements = typeof(IWebSocketSessionHub))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IWebSocketSessionHub))]
     internal class WebSocketSessionHub : IWebSocketSessionHub
     {
         private readonly RecyclableMemoryStreamManager _memoryStreamManager;

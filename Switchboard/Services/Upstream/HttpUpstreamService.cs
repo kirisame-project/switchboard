@@ -12,8 +12,8 @@ using Switchboard.Services.Upstream.RemoteContracts;
 
 namespace Switchboard.Services.Upstream
 {
-    [Component(ServiceLifetime.Singleton, Implements = typeof(IUpstreamService))]
-    [RequireExternal(typeof(HttpClient))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IUpstreamService))]
+    [ExternalComponent(typeof(HttpClient), ServiceLifetime.Singleton)]
     internal class HttpUpstreamService : IUpstreamService
     {
         private readonly HttpClient _client;

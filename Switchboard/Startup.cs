@@ -66,11 +66,11 @@ namespace Switchboard
             services.AddLogging(builder => builder.AddConsole());
             services.AddMvc();
 
-            services.AddSingleton(new RecyclableMemoryStreamManager());
+            var loader = new ComponentLoader(services);
+            loader.AddFromAssembly(Assembly.GetExecutingAssembly());
 
             ConfigureMetrics(_configuration, services);
             ConfigureReporting(_configuration, services);
-            RegisterComponents(services);
             RegisterConfigurations(_configuration, services);
         }
 
@@ -115,35 +115,6 @@ namespace Switchboard
                 {"hostname", Environment.MachineName}
             };
             services.AddSingleton(new MeasurementWriterFactory(predefinedTags, collector));
-        }
-
-        private static void AddComponent(Type type, ComponentAttribute attribute, IServiceCollection services)
-        {
-            var singletons = type.GetCustomAttributes<RequireExternal>();
-            foreach (var dependency in singletons)
-                services.AddSingleton(dependency.Type);
-
-            var serviceType = attribute.Implements ?? type;
-
-            switch (attribute.Lifetime)
-            {
-                case ServiceLifetime.Singleton:
-                    services.AddSingleton(serviceType, type);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(attribute.Lifetime), attribute.Lifetime, null);
-            }
-        }
-
-        private void RegisterComponents(IServiceCollection services)
-        {
-            var types = GetType().Assembly.DefinedTypes;
-            foreach (var type in types)
-            {
-                var attribute = type.GetCustomAttribute<ComponentAttribute>();
-                if (attribute != null)
-                    AddComponent(type, attribute, services);
-            }
         }
     }
 }

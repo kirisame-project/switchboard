@@ -16,7 +16,8 @@ using Switchboard.Services.Upstream;
 
 namespace Switchboard.Services.FaceRecognition
 {
-    [Component(ServiceLifetime.Singleton, Implements = typeof(IRecognitionTaskRunner))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IRecognitionTaskRunner))]
+    [ExternalComponent(typeof(RecyclableMemoryStreamManager), ServiceLifetime.Singleton)]
     internal class HttpRecognitionTaskRunner : IRecognitionTaskRunner
     {
         private readonly ILogger _logger;

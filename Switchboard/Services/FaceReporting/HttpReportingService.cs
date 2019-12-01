@@ -11,7 +11,7 @@ using Switchboard.Services.Upstream;
 
 namespace Switchboard.Services.FaceReporting
 {
-    [Component(ServiceLifetime.Singleton, Implements = typeof(IReportingService))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IReportingService))]
     internal class HttpReportingService : IReportingService
     {
         private readonly HttpReportingConfiguration _config;

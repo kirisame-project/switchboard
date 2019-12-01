@@ -11,7 +11,7 @@ namespace AtomicAkarin.Shirakami.Reflections
             Lifetime = lifetime;
         }
 
-        public Type Implements { get; set; }
+        public Type ServiceType { get; set; }
 
         public ServiceLifetime Lifetime { get; set; }
     }
