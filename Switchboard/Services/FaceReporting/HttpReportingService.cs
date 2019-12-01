@@ -4,13 +4,14 @@ using System.Net.Http;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Switchboard.Common;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard.Services.FaceReporting
 {
-    [Component(ComponentLifestyle.Singleton, Implements = typeof(IReportingService))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IReportingService))]
     internal class HttpReportingService : IReportingService
     {
         private readonly HttpReportingConfiguration _config;

@@ -3,26 +3,27 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.IO;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.Primitives;
-using Switchboard.Common;
 using Switchboard.Services.Common.Contracts;
 using Switchboard.Services.FaceRecognition.Abstractions;
 using Switchboard.Services.Upstream;
 
 namespace Switchboard.Services.FaceRecognition
 {
-    [Component(ComponentLifestyle.Singleton, Implements = typeof(IRecognitionTaskRunner))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IRecognitionTaskRunner))]
+    [ExternalComponent(typeof(RecyclableMemoryStreamManager), ServiceLifetime.Singleton)]
     internal class HttpRecognitionTaskRunner : IRecognitionTaskRunner
     {
+        private readonly ILogger _logger;
         private readonly RecyclableMemoryStreamManager _memoryStreamManager;
 
         private readonly IUpstreamService _upstream;
-
-        private readonly ILogger _logger;
 
         public HttpRecognitionTaskRunner(IUpstreamService upstream, ILoggerFactory loggerFactory,
             RecyclableMemoryStreamManager memoryStreamManager)

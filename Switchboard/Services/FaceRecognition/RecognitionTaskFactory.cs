@@ -1,21 +1,23 @@
 ﻿using System;
 using System.IO;
+using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Switchboard.Common;
 using Switchboard.Services.FaceRecognition.Abstractions;
 
 namespace Switchboard.Services.FaceRecognition
 {
-    [Component(ComponentLifestyle.Singleton)]
+    [Component(ServiceLifetime.Singleton)]
     internal class RecognitionTaskFactory
     {
         private readonly ILogger _logger;
-        public event EventHandler<BaseTaskState> OnStateChanged;
 
         public RecognitionTaskFactory(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger(GetType());
         }
+
+        public event EventHandler<BaseTaskState> OnStateChanged;
 
         public RecognitionTask Create(Stream image)
         {

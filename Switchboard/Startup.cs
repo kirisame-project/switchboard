@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using AtomicAkarin.Shirakami.Reflections;
 using InfluxDB.LineProtocol.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -10,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IO;
-using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Metrics;
@@ -66,11 +66,11 @@ namespace Switchboard
             services.AddLogging(builder => builder.AddConsole());
             services.AddMvc();
 
-            services.AddSingleton(new RecyclableMemoryStreamManager());
+            var loader = new ComponentLoader(services);
+            loader.AddFromAssembly(Assembly.GetExecutingAssembly());
 
             ConfigureMetrics(_configuration, services);
             ConfigureReporting(_configuration, services);
-            RegisterComponents(services);
             RegisterConfigurations(_configuration, services);
         }
 
@@ -115,35 +115,6 @@ namespace Switchboard
                 {"hostname", Environment.MachineName}
             };
             services.AddSingleton(new MeasurementWriterFactory(predefinedTags, collector));
-        }
-
-        private static void AddComponent(Type type, ComponentAttribute attribute, IServiceCollection services)
-        {
-            var singletons = type.GetCustomAttributes<DependsSingletonAttribute>();
-            foreach (var dependency in singletons)
-                services.AddSingleton(dependency.Type);
-
-            var serviceType = attribute.Implements ?? type;
-
-            switch (attribute.Lifestyle)
-            {
-                case ComponentLifestyle.Singleton:
-                    services.AddSingleton(serviceType, type);
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(attribute.Lifestyle), attribute.Lifestyle, null);
-            }
-        }
-
-        private void RegisterComponents(IServiceCollection services)
-        {
-            var types = GetType().Assembly.DefinedTypes;
-            foreach (var type in types)
-            {
-                var attribute = type.GetCustomAttribute<ComponentAttribute>();
-                if (attribute != null)
-                    AddComponent(type, attribute, services);
-            }
         }
     }
 }

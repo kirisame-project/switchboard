@@ -4,14 +4,15 @@ using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
+using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IO;
-using Switchboard.Common;
 using Switchboard.Controllers.WebSocketized.Abstractions;
 using Switchboard.Services.FaceRecognition;
 
 namespace Switchboard.Controllers.WebSocketsX
 {
-    [Component(ComponentLifestyle.Singleton, Implements = typeof(IWebSocketSessionHub))]
+    [Component(ServiceLifetime.Singleton, ServiceType = typeof(IWebSocketSessionHub))]
     internal class WebSocketSessionHub : IWebSocketSessionHub
     {
         private readonly RecyclableMemoryStreamManager _memoryStreamManager;

@@ -1,8 +1,9 @@
-﻿using Switchboard.Common;
+﻿using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Switchboard.Services.Upstream
 {
-    [Component(ComponentLifestyle.Singleton)]
+    [Component(ServiceLifetime.Singleton)]
     internal class UpstreamServiceConfiguration
     {
         public UpstreamServiceEndpointConfiguration Endpoints { get; set; }

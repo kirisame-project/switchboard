@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
-using Switchboard.Common;
+using AtomicAkarin.Shirakami.Reflections;
+using Microsoft.Extensions.DependencyInjection;
 using Switchboard.Services.FaceRecognition;
 using Switchboard.Services.FaceRecognition.Abstractions;
 
 namespace Switchboard.Metrics
 {
-    [Component(ComponentLifestyle.Singleton)]
+    [Component(ServiceLifetime.Singleton)]
     internal class TaskMetricsConfigurator
     {
         private static readonly MeasurementOptions DetectionTime = new MeasurementOptions
