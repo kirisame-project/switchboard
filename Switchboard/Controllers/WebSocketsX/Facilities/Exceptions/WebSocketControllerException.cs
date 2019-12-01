@@ -6,7 +6,7 @@ namespace Switchboard.Controllers.WebSocketsX.Facilities.Exceptions
     internal class WebSocketControllerException : Exception
     {
         public WebSocketControllerException(int code, string reason,
-            WebSocketCloseStatus socketCode = WebSocketCloseStatus.Empty)
+            WebSocketCloseStatus socketCode = WebSocketCloseStatus.NormalClosure)
         {
             ClosureCode = code;
             ClosureReason = reason;

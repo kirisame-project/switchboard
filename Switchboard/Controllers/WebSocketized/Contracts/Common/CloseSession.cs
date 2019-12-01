@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Switchboard.Controllers.WebSocketized.Contracts.Common
 {
@@ -8,6 +9,11 @@ namespace Switchboard.Controllers.WebSocketized.Contracts.Common
         {
             ClosureCode = code;
             ClosureReason = reason;
+        }
+
+        [Obsolete("For deserialization only")]
+        public CloseSession() : base((int) OperationCodes.Close)
+        {
         }
 
         [JsonPropertyName("code")] public int ClosureCode { get; set; }
