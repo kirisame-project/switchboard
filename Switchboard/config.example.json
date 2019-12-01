@@ -1,19 +1,26 @@
 {
   "upstream": {
     "endpoints": {
-      "detection": "https://iac.face.api.example.com/detect/",
-      "detectionv2": "https://iac.face.api.example.com/detect_v2/",
-      "recognition": "https://iac.face.api.example.com/recognize/",
-      "search": "https://iac.face.api.example.com/search/"
+      "detection": "https://iac.face.api.example.local/detect/",
+      "detectionv2": "https://iac.face.api.example.local/detect_v2/",
+      "recognition": "https://iac.face.api.example.local/recognize/",
+      "search": "https://iac.face.api.example.local/search/"
+    },
+    "timeout": 3000
+  },
+  "metrics": {
+    "flushInterval": 5,
+    "influxDb": {
+      "baseUri": "https://metrics.api.example.local/influx/",
+      "database": "database",
+      "password": "password",
+      "username": "username"
     }
   },
-  "metrics":{
-    "flushInterval": 60,
-    "influxDb": {
-		  "baseUri": "https://localhost:114514/",
-		  "database": "metrics",
-		  "username": "metrics",
-		  "password": "metrics"
-	  }
+  "reporting": {
+    "accessToken": "I_Love_Alice_Mana_Forever.jpg",
+    "labelReportingEndpoint": "https://iac.face.api.example.local/room214/",
+    "labelReportingThreshold": 0.85,
+    "timeout": 3000
   }
 }
